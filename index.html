@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MX Currency">
+<meta name="description" content="MX Currency by MazenmiX — live world exchange and Baghdad street rates.">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>MX Currency — MazenmiX</title>
+<style>
+:root{color-scheme:dark;--line:#2a2a2d;--soft:#9b9ba0;--blue:#168fff}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+body{overscroll-behavior:none;-webkit-font-smoothing:antialiased}
+button,input{font:inherit}button{border:none;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible{outline:2px solid #168fff;outline-offset:-3px}
+#app{height:100dvh;width:100%;max-width:520px;margin:auto;display:flex;flex-direction:column;overflow:hidden;background:#000;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+header{position:relative;flex:0 0 67px;height:67px;display:flex;justify-content:center;align-items:center;padding:0 73px}
+.round{position:absolute;left:16px;top:50%;transform:translateY(-50%);height:44px;width:44px;border-radius:50%;border:1px solid #39393d;background:linear-gradient(145deg,#303033,#181819);display:grid;place-items:center}
+.round.right{left:auto;right:16px}.round svg{width:30px;height:30px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#rate{font-size:20px;font-weight:750;white-space:nowrap;overflow:hidden;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:-.4px;max-width:100%}
+.display{height:99px;flex:0 0 99px;display:flex;align-items:center;justify-content:center;gap:20px;padding:0 22px;min-width:0}
+.amount{width:40%;min-width:0;font-weight:200;font-size:56px;line-height:1;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums}
+#entered{text-align:right}#converted{background:none;padding:0;text-align:left}
+.equals{font-size:56px;line-height:1;color:#343438;font-weight:100}
+.pair{height:86px;flex:0 0 86px;display:flex;align-items:center;padding:0 10px;gap:6px;min-width:0}
+.pair button{flex:1;display:flex;align-items:center;text-align:left;background:none;min-width:0;padding:0;gap:7px}
+.flag{font-size:40px;line-height:1;white-space:nowrap;font-family:"Apple Color Emoji","Segoe UI Emoji",sans-serif}
+.pair .info{display:flex;flex-direction:column;min-width:0;gap:2px}.pair .code{font-size:18px;font-weight:500}.hint{font-size:13px;color:#929298;white-space:nowrap}
+.arrow{width:27px;min-width:27px;color:#bfc0c1}
+.pad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));height:100%;flex:1;min-height:0;border-top:1px solid var(--line)}
+.key{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;background:#000;border-right:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;font-size:35px;font-weight:300;touch-action:manipulation;user-select:none;transition:background .06s}
+.key:active{background:#242424}
+.key.action{font-size:20px}.key svg{height:27px;width:27px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.key.clear{background:#ff3335}.key.clear:active{background:#da2529}
+.key.delete{background:#eee;color:#141414}.key.delete:active{background:#ccc}
+.key.swap{grid-row:span 2;background:#44d74d;flex-direction:column;gap:10px;font-size:17px;font-weight:450}
+.key.swap:active{background:#30bd3c}.key.swap svg{height:30px;width:30px}
+.key.zero{grid-column:span 2}
+footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:14px;gap:10px}
+#updated{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#settingsButton{background:none;color:var(--blue);font-size:15px;font-weight:650;padding:12px 0}
+#shade{position:fixed;inset:0;display:none;z-index:15;background:#000;justify-content:center}
+#shade.visible{display:flex}
+#sheet{width:100%;max-width:520px;height:100dvh;background:#0a0a0a;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+.sheetTop{height:60px;flex:0 0 60px;background:#111;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:0 14px}
+.sheetTop h2{margin:0;font-size:17px;font-weight:650}
+.sheetTop button{width:38px;height:38px;border-radius:19px;background:#303033;display:grid;place-items:center;font-size:22px}
+.sheetTop button.primary{background:#1578ed}
+#sheetBody{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;background:#080808}
+.search{position:sticky;top:0;padding:9px 12px;background:#080808;z-index:2}
+.search input{border:0;border-radius:11px;background:#272729;color:#fff;padding:11px 13px;width:100%;font-size:15px;outline:none}
+.item{width:100%;display:flex;align-items:center;gap:14px;padding:9px 17px;min-height:67px;background:#080808;border-bottom:1px solid #222;text-align:left}
+.item:active{background:#242426}
+.item .flag{font-size:30px;width:42px;text-align:center}
+.detail{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.detail strong{font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail small{font-size:13px;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.check{font-size:22px;color:#168eff}.muted{color:var(--soft)}
+.remove{background:none;color:#ff575c;font-size:23px;padding:6px 9px}
+.move{background:none;color:#aaa;font-size:22px;padding:6px 8px;touch-action:none}
+.infoLine{color:#a5a5a5;padding:15px;font-size:12px}
+.settingsCard{display:flex;align-items:center;background:#252525;border:1px solid #353535;padding:20px;border-radius:17px;width:calc(100% - 36px);margin:24px 18px;gap:13px;text-align:left}
+.settingsCard strong{font-size:17px}.settingsCard small{display:block;color:#aaa;font-size:12px;margin-top:6px}
+.mark{font-size:30px;font-weight:900;text-align:center;margin:36px 0 0}.mark b{color:#ffb228}
+.brand{text-align:center;font-size:14px;color:#999;margin:7px 0}
+#toast{position:fixed;z-index:40;bottom:73px;left:50%;transform:translateX(-50%);background:#333;border-radius:12px;padding:10px 16px;color:white;display:none;font-size:13px;white-space:nowrap}
+@media (max-width:375px){header{padding:0 57px}#rate{font-size:18px}.round{left:9px;width:42px;height:42px}.round.right{right:9px;left:auto}.pair{padding:0 6px;gap:4px}.flag{font-size:33px}.pair .code{font-size:16px}.hint{font-size:11px}.arrow{min-width:22px;width:22px}.display{gap:14px;padding:0 14px}}
+@media (max-height:630px){header{height:54px;flex-basis:54px}.display{height:74px;flex-basis:74px}.pair{height:65px;flex-basis:65px}footer{height:48px;flex-basis:48px}}
+@media (min-width:560px){#app,#sheet{border-left:1px solid #222;border-right:1px solid #222}body{background:#090909}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main id="app">
+ <header>
+  <button id="favoritesButton" class="round" title="Favorites" aria-label="Favorites">
+   <svg viewBox="0 0 24 24"><path d="m12 2 3.2 6.5 7.1 1-5.15 5 1.2 7-6.35-3.4-6.35 3.4 1.2-7-5.15-5 7.1-1z"/></svg>
+  </button>
+  <div id="rate" aria-live="polite">1 USD = — PHP</div>
+  <button id="liveButton" class="round right" title="Live Rates" aria-label="Live Rates">
+   <svg viewBox="0 0 24 24"><path d="M3 21h18"/><rect x="3" y="10" width="3.8" height="9" rx="1" fill="white" stroke="none"/><rect x="8.7" y="3" width="3.8" height="16" rx="1" fill="white" stroke="none"/><rect x="14.4" y="7" width="3.8" height="12" rx="1" fill="white" stroke="none"/><rect x="20" y="12" width="2" height="7" rx="1" fill="white" stroke="none"/></svg>
+  </button>
+ </header>
+ <section class="display" aria-label="Conversion display">
+  <div class="amount" id="entered">0</div><span class="equals">=</span><button class="amount" id="converted" title="Copy result">0</button>
+ </section>
+ <section class="pair">
+  <button id="fromSelect" aria-label="Starting Currency"><span id="fromFlag" class="flag">🇺🇸</span><span class="info"><span id="fromCode" class="code">USD</span><span class="hint">Tap to change</span></span></button>
+  <svg class="arrow" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 16h26m-10-10 10 10-10 10"/></svg>
+  <button id="toSelect" aria-label="Ending Currency"><span id="toFlag" class="flag">🇵🇭</span><span class="info"><span id="toCode" class="code">PHP</span><span class="hint">Tap to change</span></span></button>
+ </section>
+ <section class="pad" aria-label="Calculator keypad">
+  <button class="key" data-n="7">7</button><button class="key" data-n="8">8</button><button class="key" data-n="9">9</button>
+  <button id="clear" class="key action clear" aria-label="Clear">
+   <svg viewBox="0 0 24 24"><path d="M4 6h16M9 6V3h6v3M6 6l1 15h10l1-15M10 10v8m4-8v8"/></svg>
+  </button>
+  <button class="key" data-n="4">4</button><button class="key" data-n="5">5</button><button class="key" data-n="6">6</button>
+  <button id="backspace" class="key action delete" aria-label="Backspace">
+   <svg viewBox="0 0 24 24"><path d="M10 5h11v14H10L2 12zM12 9l5 6m0-6-5 6"/></svg>
+  </button>
+  <button class="key" data-n="1">1</button><button class="key" data-n="2">2</button><button class="key" data-n="3">3</button>
+  <button id="swap" class="key swap" aria-label="Switch">
+    <svg viewBox="0 0 24 24"><path d="M4 6h14l-3-3m3 3-3 3M20 18H6l3-3m-3 3 3 3M4 12c0 2 2 3 4 4m12-4c0-2-2-4-4-5"/></svg><span>Switch</span>
+  </button>
+  <button class="key" data-n=".">.</button><button class="key zero" data-n="0">0</button>
+ </section>
+ <footer><span id="updated">Last Updated: —</span><button id="settingsButton">Settings</button></footer>
+</main>
+<div id="shade" aria-hidden="true"><section id="sheet" role="dialog" aria-modal="true"><div class="sheetTop"><button id="closeSheet" aria-label="Close">×</button><h2 id="sheetTitle">Currencies</h2><button id="rightSheet" class="primary" aria-label="Done">✓</button></div><div id="sheetBody"></div></section></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),K='mx.currency.web.v2';
+const P='USD EUR GBP IQD PHP IDR TRY THB VND AED SAR QAR KWD MYR SGD JPY CNY HKD KRW INR AUD NZD CAD CHF ARS BRL MXN'.split(' ');
+const F=Object.fromEntries(('USD:🇺🇸 EUR:🇪🇺 GBP:🇬🇧 IQD:🇮🇶 PHP:🇵🇭 IDR:🇮🇩 TRY:🇹🇷 THB:🇹🇭 VND:🇻🇳 AED:🇦🇪 SAR:🇸🇦 QAR:🇶🇦 KWD:🇰🇼 BHD:🇧🇭 OMR:🇴🇲 JOD:🇯🇴 EGP:🇪🇬 MYR:🇲🇾 SGD:🇸🇬 JPY:🇯🇵 CNY:🇨🇳 HKD:🇭🇰 KRW:🇰🇷 INR:🇮🇳 AUD:🇦🇺 NZD:🇳🇿 CAD:🇨🇦 CHF:🇨🇭 ARS:🇦🇷 BRL:🇧🇷 MXN:🇲🇽 RUB:🇷🇺 VND:🇻🇳 AFN:🇦🇫 BDT:🇧🇩 PKR:🇵🇰 ZAR:🇿🇦 EUR:🇪🇺').split(' ').map(x=>[x.slice(0,3),x.slice(4)]));
+const defaultFav=[['USD','PHP'],['USD','IQD'],['USD','IDR'],['USD','TRY'],['USD','THB'],['USD','VND']];
+let saved={};try{saved=JSON.parse(localStorage.getItem(K)||'{}')}catch{}
+const s={from:saved.from||'USD',to:saved.to||'PHP',input:'',favorites:Array.isArray(saved.favorites)?saved.favorites:defaultFav,rates:{USD:1,...(saved.rates||{})},meta:saved.meta||{},updated:saved.updated||null,screen:'',query:'',busy:false,lastBase:0};
+if(s.rates.IQD>0&&s.rates.IQD<4)s.rates.IQD*=1000;if(s.rates.IQD>=80&&s.rates.IQD<=350)s.rates.IQD*=10;
+if(s.rates.IQD&&!(s.rates.IQD>=800&&s.rates.IQD<=3500))delete s.rates.IQD;
+function save(){try{localStorage.setItem(K,JSON.stringify({from:s.from,to:s.to,favorites:s.favorites,rates:s.rates,meta:s.meta,updated:s.updated}))}catch{}}
+function name(code){if(code==='IQD')return 'Iraqi Dinar (Parallel)';try{return new Intl.DisplayNames(['en'],{type:'currency'}).of(code)||code}catch{return code}}
+function catalog(){let xs=P;try{xs=[...new Set([...P,...Intl.supportedValuesOf('currency')])]}catch{}return xs.map(code=>({code,name:name(code),flag:F[code]||'🌐'})).sort((a,b)=>{let i=P.indexOf(a.code),j=P.indexOf(b.code);return i>=0&&j>=0?i-j:i>=0?-1:j>=0?1:a.name.localeCompare(b.name)})}
+const currencies=catalog();
+function fmt(v,n=0){if(!Number.isFinite(v))return '—';return new Intl.NumberFormat('en-US',{minimumFractionDigits:n,maximumFractionDigits:n}).format(v)}
+function rate(f,t){if(f===t)return 1;let a=Number(s.rates[f]),b=Number(s.rates[t]);if(!(a>0&&b>0))return null;let ask=Number(s.meta[f]?.sell)||a,bid=Number(s.meta[t]?.buy)||b;return ask>0?bid/ask:null}
+function draw(){let a=s.input||'0',r=rate(s.from,s.to),out=r===null?'—':fmt((Number(s.input)||0)*r);$('entered').textContent=a;$('converted').textContent=out;
+ $('entered').style.fontSize=(a.length<=7?56:a.length<=10?42:a.length<=13?31:24)+'px';
+ $('converted').style.fontSize=(out.length<=7?56:out.length<=10?42:out.length<=13?31:24)+'px';
+ $('rate').textContent='1 '+s.from+' = '+(r===null?'—':fmt(r,s.to==='IQD'?0:3))+' '+s.to;
+ $('rate').style.fontSize=$('rate').textContent.length>24?'16px':'20px';
+ for(const side of ['from','to']){$(side+'Flag').textContent=F[s[side]]||'🌐';$(side+'Code').textContent=s[side];}
+ let d=s.updated?new Date(s.updated):null;
+ $('updated').textContent='Last Updated: '+(d&&!isNaN(+d)?d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false}):'—');
+}
+function add(n){if(n==='.'){if(!s.input.includes('.'))s.input=s.input?s.input+'.':'0.'}else if(s.input.length<16)s.input=s.input==='0'?n:s.input+n;draw()}
+function flip(){let t=s.from;s.from=s.to;s.to=t;save();draw();refresh()}
+function open(screen){s.screen=screen;s.query='';$('shade').classList.add('visible');$('shade').setAttribute('aria-hidden','false');render();history.pushState({mxScreen:screen},'','#'+screen)}
+function close(back=false){s.screen='';$('shade').classList.remove('visible');$('shade').setAttribute('aria-hidden','true');$('sheetBody').replaceChildren();if(!back&&location.hash)history.back()}
+window.addEventListener('popstate',()=>{if(s.screen)close(true)});
+function top(title,right='✓',action=()=>close()){$('sheetTitle').textContent=title;$('rightSheet').textContent=right;$('rightSheet').style.visibility=right?'visible':'hidden';$('rightSheet').onclick=action;$('closeSheet').onclick=()=>s.screen==='add'? (s.screen='favorites',render()):close()}
+function searchBox(oninput){let d=document.createElement('div');d.className='search';let i=document.createElement('input');i.placeholder='Search for currency…';i.type='search';i.value=s.query;i.oninput=()=>{s.query=i.value;oninput()};d.append(i);return d}
+function currencyItem(c,selected,action,extra=''){let b=document.createElement('button');b.className='item';b.innerHTML='<span class="flag">'+c.flag+'</span><span class="detail"><strong>'+c.name+'</strong><small>'+c.code+'</small></span><span class="check">'+(selected?'✓':extra)+'</span>';b.onclick=action;return b}
+function choose(side){let body=$('sheetBody');top(side==='from'?'Starting Currency':'Ending Currency');body.replaceChildren();
+ let items=document.createElement('div');function fill(){items.replaceChildren();let q=s.query.toLowerCase().trim();for(let c of currencies.filter(x=>!q||x.code.toLowerCase().includes(q)||x.name.toLowerCase().includes(q)))items.append(currencyItem(c,s[side]===c.code,()=>{s[side]=c.code;save();draw();close();refresh()}))}
+ body.append(searchBox(fill),items);fill()}
+function addFav(){let body=$('sheetBody');top('Add Favorite','✓',()=>{s.screen='favorites';render()});body.replaceChildren();let items=document.createElement('div');
+ function fill(){items.replaceChildren();let q=s.query.toLowerCase().trim();for(const c of currencies.filter(x=>x.code!==s.from&&(!q||x.code.toLowerCase().includes(q)||x.name.toLowerCase().includes(q)))){let hit=s.favorites.some(p=>p[0]===s.from&&p[1]===c.code);items.append(currencyItem(c,hit,()=>{if(hit)s.favorites=s.favorites.filter(p=>!(p[0]===s.from&&p[1]===c.code));else s.favorites.unshift([s.from,c.code]);save();fill()},hit?'✓':'+'))}}
+ body.append(searchBox(fill),items);fill()}
+function favorites(){let body=$('sheetBody');top('Favorites','+',()=>{s.screen='add';s.query='';render()});body.replaceChildren();
+ if(!s.favorites.length){body.innerHTML='<div class="infoLine">No Favorites. Tap + to add a currency.</div>';return}
+ s.favorites.forEach((p,i)=>{let c={code:p[1],name:name(p[1]),flag:F[p[1]]||'🌐'},v=rate(p[0],p[1]),item=document.createElement('div');item.className='item';
+ let b=document.createElement('button');b.className='item';b.style.cssText='flex:1;min-width:0;border:0;padding:0;';b.innerHTML='<span class="flag">'+c.flag+'</span><span class="detail"><strong>1 '+p[0]+' → '+(v===null?'—':fmt(v,v>=100?0:3))+' '+p[1]+'</strong><small>'+c.code+' ('+c.name+')</small></span>';
+ b.onclick=()=>{s.from=p[0];s.to=p[1];save();draw();close();refresh()};
+ let del=document.createElement('button');del.className='remove';del.textContent='×';del.title='Remove';del.onclick=()=>{s.favorites.splice(i,1);save();favorites()};
+ let up=document.createElement('button');up.className='move';up.textContent='↕';up.title='Move favorite up';up.onclick=()=>{if(i){let a=s.favorites[i-1];s.favorites[i-1]=s.favorites[i];s.favorites[i]=a;save();favorites()}};
+ item.append(b,up,del);body.append(item)})}
+function live(){let body=$('sheetBody');top('Live Rates','⟳',()=>refresh(true).then(()=>{if(s.screen==='live')live()}));body.replaceChildren();
+ let note=document.createElement('div');note.className='infoLine';note.textContent='Rates per 1 USD • IQD from MXDollar, highest Baghdad BUY quote';let list=document.createElement('div');
+ function fill(){list.replaceChildren();let q=s.query.toLowerCase().trim();for(const c of currencies.filter(x=>!q||x.code.toLowerCase().includes(q)||x.name.toLowerCase().includes(q))){let v=rate('USD',c.code),item=document.createElement('div');item.className='item';item.innerHTML='<span class="flag">'+c.flag+'</span><span class="detail"><strong>'+c.code+'</strong><small>'+c.name+'</small></span><span class="detail" style="text-align:right;flex:0 0 auto;max-width:48%"><strong>'+ (v===null?'—':fmt(v,v>=100?0:3)) +'</strong><small>'+ (c.code==='IQD'?'MXDollar • Highest BUY':v===null?'Unavailable':'per 1 USD') +'</small></span>';list.append(item)}}
+ body.append(searchBox(fill),note,list);fill()}
+function settings(){let body=$('sheetBody');top('Settings','');body.replaceChildren();let b=document.createElement('button');b.className='settingsCard';b.innerHTML='<span style="font-size:32px;color:#43d56b">⇩</span><span><strong>Install MX Currency</strong><small>Add to Home Screen on iPhone, Android or desktop</small></span>';b.onclick=install;
+ let m=document.createElement('div');m.className='mark';m.innerHTML='M<b>X</b>';let n=document.createElement('div');n.className='brand';n.textContent='MazenmiX';body.append(b,m,n)}
+function render(){if(s.screen==='from'||s.screen==='to')choose(s.screen);else if(s.screen==='favorites')favorites();else if(s.screen==='add')addFav();else if(s.screen==='live')live();else if(s.screen==='settings')settings()}
+let prompt=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();prompt=e});
+function toast(str){let t=$('toast');t.textContent=str;t.style.display='block';setTimeout(()=>{t.style.display='none'},2200)}
+async function install(){if(prompt){prompt.prompt();await prompt.userChoice;prompt=null}else toast(/iPhone|iPad/i.test(navigator.userAgent)?'Safari → Share → Add to Home Screen':'Browser menu → Install app')}
+async function json(url){const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),9000);try{let r=await fetch(url,{cache:'no-store',signal:ctrl.signal,headers:{Accept:'application/json'}});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(timer)}}
+async function first(urls){for(let u of urls){try{return await json(u)}catch{}}return null}
+function normalPrice(raw){let n=Number(String(raw??'').replace(/,/g,''));return n>=80000&&n<=350000?n:n>=800&&n<=3500?n*100:n>=80&&n<=350?n*1000:null}
+function iqdQuote(d){if(d&&Number(d.rate)>=800&&Number(d.rate)<=3500)return {rate:Number(d.rate),source:d.market||'MXDollar'};let a=[['Kifah',d?.kifah?.buy],['Harithiya',d?.harithiya?.buy],['Kukh',d?.kukh?.buy]].map(x=>({source:x[0],price:normalPrice(x[1])})).filter(x=>x.price);a.sort((x,y)=>y.price-x.price);return a.length?{rate:a[0].price/100,source:a[0].source}:null}
+async function refresh(force=false){if(s.busy||!navigator.onLine)return;s.busy=true;try{
+ let bucket=Math.floor(Date.now()/300000);
+ let needsBook=force||Date.now()-s.lastBase>300000;
+ const jobs=[];
+ if(needsBook){s.lastBase=Date.now();jobs.push((async()=>{let b=await first(['/api/rates?v='+bucket,'https://raw.githubusercontent.com/mazenmix/MX-Currency-/main/data/rates.json?v='+bucket,'https://open.er-api.com/v6/latest/USD']);if(b?.rates&&(b.base==='USD'||b.result==='success')){for(let [k,v] of Object.entries(b.rates))if(k!=='IQD'&&Number(v)>0)s.rates[k]=Number(v);for(let [k,v] of Object.entries(b.meta||{}))if(k!=='IQD')s.meta[k]=v;s.updated=b.updatedAt||new Date().toISOString()}})())}
+ if(s.from==='IQD'||s.to==='IQD'||s.favorites.some(p=>p.includes('IQD')))jobs.push((async()=>{let d=await first(['/api/iqd?v='+Math.floor(Date.now()/60000),'https://mxdollar.pages.dev/api/market?v='+Math.floor(Date.now()/60000)]);let x=iqdQuote(d);if(x){s.rates.IQD=x.rate;s.meta.IQD={buy:x.rate,sell:x.rate,kind:'parallel',source:'MXDollar · Highest BUY · '+x.source};s.updated=new Date().toISOString()}})());
+ if(s.from==='ARS'||s.to==='ARS')jobs.push((async()=>{let b=await first(['/api/ars','https://dolarapi.com/v1/dolares/blue']);if(b?.compra>0&&b?.venta>0){s.rates.ARS=(b.compra+b.venta)/2;s.meta.ARS={buy:b.compra,sell:b.venta,kind:'parallel'}}})());
+ await Promise.allSettled(jobs);save();draw();
+ }finally{s.busy=false}}
+document.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>add(b.dataset.n)));
+$('clear').onclick=()=>{s.input='';draw()};$('backspace').onclick=()=>{s.input=s.input.slice(0,-1);draw()};
+$('swap').onclick=flip;$('fromSelect').onclick=()=>open('from');$('toSelect').onclick=()=>open('to');
+$('favoritesButton').onclick=()=>open('favorites');$('liveButton').onclick=()=>{open('live');refresh(true).then(()=>{if(s.screen==='live')live()})};
+$('settingsButton').onclick=()=>open('settings');$('closeSheet').onclick=()=>close();
+$('converted').onclick=async()=>{if($('converted').textContent==='—')return;try{await navigator.clipboard.writeText($('converted').textContent);toast('Copied')}catch{toast('Copy unavailable')}};
+document.addEventListener('keydown',e=>{if(s.screen||e.ctrlKey||e.metaKey||e.altKey||['INPUT','TEXTAREA'].includes(document.activeElement?.tagName))return;if(/^[0-9.]$/.test(e.key)){e.preventDefault();add(e.key)}else if(e.key==='Backspace'){e.preventDefault();$('backspace').click()}else if(e.key==='Delete'){e.preventDefault();$('clear').click()}else if(e.key==='Enter'){e.preventDefault();flip()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});window.addEventListener('online',()=>refresh(true));
+draw();refresh(true);setInterval(()=>{if(!document.hidden)refresh()},60000);
+if('serviceWorker'in navigator&&location.protocol==='https:')window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+})();
+</script>
+</body></html>
