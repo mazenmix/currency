@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="MX Currency">
 <meta name="description" content="MX Currency by MazenmiX — live world exchange and Baghdad street rates.">
 <link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
 <title>MX Currency — MazenmiX</title>
 <style>
 :root{color-scheme:dark;--line:#2a2a2d;--soft:#9b9ba0;--blue:#168fff}
@@ -157,8 +158,17 @@ function favorites(){let body=$('sheetBody');top('Favorites','+',()=>{s.screen='
  let b=document.createElement('button');b.className='item';b.style.cssText='flex:1;min-width:0;border:0;padding:0;';b.innerHTML='<span class="flag">'+c.flag+'</span><span class="detail"><strong>1 '+p[0]+' → '+(v===null?'—':fmt(v,v>=100?0:3))+' '+p[1]+'</strong><small>'+c.code+' ('+c.name+')</small></span>';
  b.onclick=()=>{s.from=p[0];s.to=p[1];save();draw();close();refresh()};
  let del=document.createElement('button');del.className='remove';del.textContent='×';del.title='Remove';del.onclick=()=>{s.favorites.splice(i,1);save();favorites()};
- let up=document.createElement('button');up.className='move';up.textContent='↕';up.title='Move favorite up';up.onclick=()=>{if(i){let a=s.favorites[i-1];s.favorites[i-1]=s.favorites[i];s.favorites[i]=a;save();favorites()}};
- item.append(b,up,del);body.append(item)})}
+ let up=document.createElement('button');up.className='move';up.textContent='≡';up.title='Move favorite up';up.onclick=()=>{if(i){let a=s.favorites[i-1];s.favorites[i-1]=s.favorites[i];s.favorites[i]=a;save();favorites()}};
+ item.append(b,up,del);
+ item.draggable=true;
+ item.addEventListener('dragstart',ev=>{ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(i));item.style.opacity='.45'});
+ item.addEventListener('dragend',()=>{item.style.opacity='1'});
+ item.addEventListener('dragover',ev=>ev.preventDefault());
+ item.addEventListener('drop',ev=>{ev.preventDefault();let j=Number(ev.dataTransfer.getData('text/plain'));if(Number.isInteger(j)&&j>=0&&j<s.favorites.length&&j!==i){let v=s.favorites.splice(j,1)[0];s.favorites.splice(i,0,v);save();favorites()}});
+ let touchY=null;
+ up.addEventListener('pointerdown',ev=>{if(ev.pointerType==='touch'){touchY=ev.clientY;up.setPointerCapture(ev.pointerId)}});
+ up.addEventListener('pointerup',ev=>{if(touchY!==null){let offset=Math.round((ev.clientY-touchY)/Math.max(55,item.clientHeight));touchY=null;if(offset){let j=Math.max(0,Math.min(s.favorites.length-1,i+offset));let v=s.favorites.splice(i,1)[0];s.favorites.splice(j,0,v);save();favorites()}}});
+ body.append(item)})}
 function live(){let body=$('sheetBody');top('Live Rates','⟳',()=>refresh(true).then(()=>{if(s.screen==='live')live()}));body.replaceChildren();
  let note=document.createElement('div');note.className='infoLine';note.textContent='Rates per 1 USD • IQD from MXDollar, highest Baghdad BUY quote';let list=document.createElement('div');
  function fill(){list.replaceChildren();let q=s.query.toLowerCase().trim();for(const c of currencies.filter(x=>!q||x.code.toLowerCase().includes(q)||x.name.toLowerCase().includes(q))){let v=rate('USD',c.code),item=document.createElement('div');item.className='item';item.innerHTML='<span class="flag">'+c.flag+'</span><span class="detail"><strong>'+c.code+'</strong><small>'+c.name+'</small></span><span class="detail" style="text-align:right;flex:0 0 auto;max-width:48%"><strong>'+ (v===null?'—':fmt(v,v>=100?0:3)) +'</strong><small>'+ (c.code==='IQD'?'MXDollar • Highest BUY':v===null?'Unavailable':'per 1 USD') +'</small></span>';list.append(item)}}
