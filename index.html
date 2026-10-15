@@ -4,14 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<meta name="mx-release" content="2026-10-14-footer-mazenmix-v3">
+<meta name="mx-release" content="2026-10-15-actual-rates-flags-v4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MX Currency">
+<meta name="application-name" content="MX Currency">
 <meta name="description" content="MX Currency by MazenmiX — live world exchange and Baghdad street rates.">
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" type="image/svg+xml" href="/icon.svg">
-<title>MX Currency — MazenmiX</title>
+<link rel="manifest" href="/manifest.webmanifest?v=4">
+<link rel="icon" type="image/svg+xml" href="/icon.svg?v=4">
+<title>MX Currency</title>
 <style>
 :root{color-scheme:dark;--line:#2a2a2d;--soft:#9b9ba0;--blue:#168fff}
 *{box-sizing:border-box}
@@ -112,28 +113,21 @@ footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:flex;align-items:cen
 (()=>{'use strict';
 const $=id=>document.getElementById(id),K='mx.currency.web.v2';
 const P='USD EUR GBP IQD PHP IDR TRY THB VND AED SAR QAR KWD MYR SGD JPY CNY HKD KRW INR AUD NZD CAD CHF ARS BRL MXN'.split(' ');
+const ACTIVE=new Set("AED AFN ALL AMD AOA ARS AUD AWG AZN BAM BBD BDT BHD BIF BMD BND BOB BRL BSD BTN BWP BYN BZD CAD CDF CHF CLP CNY COP CRC CUP CVE CZK DJF DKK DOP DZD EGP ERN ETB EUR FJD FKP GBP GEL GHS GIP GMD GNF GTQ GYD HKD HNL HTG HUF IDR ILS INR IQD IRR ISK JMD JOD JPY KES KGS KHR KMF KRW KWD KYD KZT LAK LBP LKR LRD LSL LYD MAD MDL MGA MKD MMK MNT MOP MRU MUR MVR MWK MXN MYR MZN NAD NGN NIO NOK NPR NZD OMR PAB PEN PGK PHP PKR PLN PYG QAR RON RSD RUB RWF SAR SBD SCR SDG SEK SGD SHP SLE SOS SRD SSP STN SYP SZL THB TJS TMT TND TOP TRY TTD TWD TZS UAH UGX USD UYU UZS VES VND VUV WST XAF XCD XCG XOF XPF YER ZAR ZMW ZWG".split(" "));
 const F=Object.fromEntries(('USD:🇺🇸 EUR:🇪🇺 GBP:🇬🇧 IQD:🇮🇶 PHP:🇵🇭 IDR:🇮🇩 TRY:🇹🇷 THB:🇹🇭 VND:🇻🇳 AED:🇦🇪 SAR:🇸🇦 QAR:🇶🇦 KWD:🇰🇼 BHD:🇧🇭 OMR:🇴🇲 JOD:🇯🇴 EGP:🇪🇬 MYR:🇲🇾 SGD:🇸🇬 JPY:🇯🇵 CNY:🇨🇳 HKD:🇭🇰 KRW:🇰🇷 INR:🇮🇳 AUD:🇦🇺 NZD:🇳🇿 CAD:🇨🇦 CHF:🇨🇭 ARS:🇦🇷 BRL:🇧🇷 MXN:🇲🇽 RUB:🇷🇺 VND:🇻🇳 AFN:🇦🇫 BDT:🇧🇩 PKR:🇵🇰 ZAR:🇿🇦 EUR:🇪🇺').split(' ').map(x=>[x.slice(0,3),x.slice(4)]));
 const defaultFav=[['USD','PHP'],['USD','IQD'],['USD','IDR'],['USD','TRY'],['USD','THB'],['USD','VND']];
 let saved={};try{saved=JSON.parse(localStorage.getItem(K)||'{}')}catch{}
-const s={from:saved.from||'USD',to:saved.to||'PHP',input:'',favorites:Array.isArray(saved.favorites)?saved.favorites:defaultFav,rates:{USD:1,...(saved.rates||{})},meta:saved.meta||{},updated:saved.updated||null,screen:'',query:'',busy:false,lastBase:0};
+const s={from:ACTIVE.has(saved.from)?saved.from:'USD',to:ACTIVE.has(saved.to)?saved.to:'PHP',input:'',favorites:(Array.isArray(saved.favorites)?saved.favorites:defaultFav).filter(p=>Array.isArray(p)&&p.length===2&&ACTIVE.has(p[0])&&ACTIVE.has(p[1])),rates:{USD:1,...(saved.rates||{})},meta:saved.meta||{},updated:saved.updated||null,screen:'',query:'',busy:false,lastBase:0};
 if(s.rates.IQD>0&&s.rates.IQD<4)s.rates.IQD*=1000;if(s.rates.IQD>=80&&s.rates.IQD<=350)s.rates.IQD*=10;
 if(s.rates.IQD&&!(s.rates.IQD>=800&&s.rates.IQD<=3500))delete s.rates.IQD;
 function save(){try{localStorage.setItem(K,JSON.stringify({from:s.from,to:s.to,favorites:s.favorites,rates:s.rates,meta:s.meta,updated:s.updated}))}catch{}}
-function name(code){if(code==='IQD')return 'Iraqi Dinar (Parallel)';try{return new Intl.DisplayNames(['en'],{type:'currency'}).of(code)||code}catch{return code}}
-function catalog(){let xs=P;try{xs=[...new Set([...P,...Intl.supportedValuesOf('currency')])]}catch{}return xs.map(code=>({code,name:name(code),flag:F[code]||'🌐'})).sort((a,b)=>{let i=P.indexOf(a.code),j=P.indexOf(b.code);return i>=0&&j>=0?i-j:i>=0?-1:j>=0?1:a.name.localeCompare(b.name)})}
-const currencies=catalog();
+function name(code){if(code==='IQD')return 'Iraqi Dinar (Parallel)';const custom={XCG:'Caribbean Guilder',ZWG:'Zimbabwe Gold (ZiG)',SLE:'Sierra Leonean Leone'};if(custom[code])return custom[code];try{return new Intl.DisplayNames(['en'],{type:'currency'}).of(code)||code}catch{return code}}
+function catalog(){return [...ACTIVE].filter(code=>code==='USD'||Number(s.rates[code])>0).map(code=>({code,name:name(code)})).sort((a,b)=>{let i=P.indexOf(a.code),j=P.indexOf(b.code);return i>=0&&j>=0?i-j:i>=0?-1:j>=0?1:a.name.localeCompare(b.name)})}
+let currencies=catalog();
 function fmt(v,n=0){if(!Number.isFinite(v))return '—';return new Intl.NumberFormat('en-US',{minimumFractionDigits:n,maximumFractionDigits:n}).format(v)}
-function rate(f,t){if(f===t)return 1;let a=Number(s.rates[f]),b=Number(s.rates[t]);if(!(a>0&&b>0))return null;let ask=Number(s.meta[f]?.sell)||a,bid=Number(s.meta[t]?.buy)||b;return ask>0?bid/ask:null}
-const COUNTRY=Object.fromEntries("USD:us EUR:eu GBP:gb IQD:iq PHP:ph IDR:id TRY:tr THB:th VND:vn AED:ae SAR:sa QAR:qa KWD:kw MYR:my SGD:sg JPY:jp CNY:cn HKD:hk KRW:kr INR:in AUD:au NZD:nz CAD:ca CHF:ch ARS:ar BRL:br MXN:mx BHD:bh OMR:om JOD:jo LBP:lb SYP:sy IRR:ir ILS:il EGP:eg MAD:ma DZD:dz TND:tn LYD:ly SDG:sd BND:bn MOP:mo TWD:tw PKR:pk BDT:bd LKR:lk NPR:np AFN:af MMK:mm KHR:kh LAK:la MNT:mn KZT:kz UZS:uz GEL:ge AMD:am AZN:az RUB:ru UAH:ua PLN:pl CZK:cz HUF:hu RON:ro BGN:bg RSD:rs ALL:al MKD:mk BAM:ba MDL:md BYN:by SEK:se NOK:no DKK:dk ISK:is CLP:cl COP:co PEN:pe UYU:uy PYG:py BOB:bo VES:ve GYD:gy SRD:sr ZAR:za NGN:ng GHS:gh KES:ke TZS:tz UGX:ug ETB:et RWF:rw ZMW:zm BWP:bw MUR:mu MGA:mg".split(' ').map(x=>x.split(':')));
-function setFlag(el,code){
- if(el.dataset.code===code)return;
- el.dataset.code=code;const country=COUNTRY[code];
- if(!country){el.textContent=F[code]||'🌐';return;}
- const img=document.createElement('img');img.alt=code+' flag';img.width=46;img.height=32;img.loading='lazy';img.decoding='async';
- img.src='https://flagcdn.com/w80/'+country+'.png';
- img.onerror=()=>{if(img.parentElement===el)el.textContent=F[code]||'🌐'};
- el.replaceChildren(img);
-}
+function rate(f,t){if(!ACTIVE.has(f)||!ACTIVE.has(t))return null;if(f===t)return 1;let a=Number(s.rates[f]),b=Number(s.rates[t]);if(!(a>0&&b>0))return null;let ask=Number(s.meta[f]?.sell)||a,bid=Number(s.meta[t]?.buy)||b;return ask>0?bid/ask:null}
+const COUNTRY=Object.fromEntries("USD:us EUR:eu GBP:gb IQD:iq PHP:ph IDR:id TRY:tr THB:th VND:vn AED:ae SAR:sa QAR:qa KWD:kw MYR:my SGD:sg JPY:jp CNY:cn HKD:hk KRW:kr INR:in AUD:au NZD:nz CAD:ca CHF:ch ARS:ar BRL:br MXN:mx BHD:bh OMR:om JOD:jo LBP:lb SYP:sy IRR:ir ILS:il EGP:eg MAD:ma DZD:dz TND:tn LYD:ly SDG:sd BND:bn MOP:mo TWD:tw PKR:pk BDT:bd LKR:lk NPR:np AFN:af MMK:mm KHR:kh LAK:la MNT:mn KZT:kz UZS:uz GEL:ge AMD:am AZN:az RUB:ru UAH:ua PLN:pl CZK:cz HUF:hu RON:ro BGN:bg RSD:rs ALL:al MKD:mk BAM:ba MDL:md BYN:by SEK:se NOK:no DKK:dk ISK:is CLP:cl COP:co PEN:pe UYU:uy PYG:py BOB:bo VES:ve GYD:gy SRD:sr ZAR:za NGN:ng GHS:gh KES:ke TZS:tz UGX:ug ETB:et RWF:rw ZMW:zm BWP:bw MUR:mu MGA:mg AOA:ao AWG:aw BBD:bb BIF:bi BMD:bm BSD:bs BTN:bt BZD:bz CDF:cd CRC:cr CUP:cu CVE:cv DJF:dj DOP:do ERN:er FJD:fj FKP:fk GIP:gi GMD:gm GNF:gn GTQ:gt HNL:hn HTG:ht JMD:jm KGS:kg KMF:km KYD:ky LRD:lr LSL:ls MRU:mr MVR:mv MWK:mw MZN:mz NAD:na NIO:ni PAB:pa PGK:pg SBD:sb SCR:sc SHP:sh SLE:sl SOS:so SSP:ss STN:st SZL:sz TJS:tj TMT:tm TOP:to TTD:tt VUV:vu WST:ws XAF:cm XCD:ag XCG:cw XOF:sn XPF:pf YER:ye ZWG:zw".split(' ').map(x=>x.split(':')));
+function setFlag(el,code){if(el.dataset.code===code)return;el.dataset.code=code;const cc=COUNTRY[code];el.textContent=cc&&/^[a-z]{2}$/.test(cc)?String.fromCodePoint(...[...cc.toUpperCase()].map(c=>c.charCodeAt(0)+127397)):'🏳️'}
 function fitNumbers(){
  const root=document.querySelector('.display');
  if(!root)return;
@@ -181,10 +175,10 @@ function addFav(){let body=$('sheetBody');top('Add Favorite','✓',()=>{s.screen
  function fill(){items.replaceChildren();let q=s.query.toLowerCase().trim();for(const c of currencies.filter(x=>x.code!==s.from&&(!q||x.code.toLowerCase().includes(q)||x.name.toLowerCase().includes(q)))){let hit=s.favorites.some(p=>p[0]===s.from&&p[1]===c.code);items.append(currencyItem(c,hit,()=>{if(hit)s.favorites=s.favorites.filter(p=>!(p[0]===s.from&&p[1]===c.code));else s.favorites.unshift([s.from,c.code]);save();fill()},hit?'✓':'+'))}}
  body.append(searchBox(fill),items);fill()}
 function favorites(){let body=$('sheetBody');top('Favorites','+',()=>{s.screen='add';s.query='';render()});body.replaceChildren();
- if(!s.favorites.length){body.innerHTML='<div class="infoLine">No Favorites. Tap + to add a currency.</div>';return}
- s.favorites.forEach((p,i)=>{let c={code:p[1],name:name(p[1]),flag:F[p[1]]||'🌐'},v=rate(p[0],p[1]),item=document.createElement('div');item.className='item';
- let b=document.createElement('button');b.className='item';b.style.cssText='flex:1;min-width:0;border:0;padding:0;';b.innerHTML='<span class="flag">'+c.flag+'</span><span class="detail"><strong>1 '+p[0]+' → '+(v===null?'—':fmt(v,v>=100?0:3))+' '+p[1]+'</strong><small>'+c.code+' ('+c.name+')</small></span>';
- b.onclick=()=>{s.from=p[0];s.to=p[1];save();draw();close();refresh()};
+ if(!s.favorites.some(p=>rate(p[0],p[1])!==null)){body.innerHTML='<div class="infoLine">No Favorites. Tap + to add a currency.</div>';return}
+ s.favorites.forEach((p,i)=>{if(rate(p[0],p[1])===null)return;let c={code:p[1],name:name(p[1])},v=rate(p[0],p[1]),item=document.createElement('div');item.className='item';
+ let b=document.createElement('button');b.className='item';b.style.cssText='flex:1;min-width:0;border:0;padding:0;';b.innerHTML='<span class="flag">'+''+'</span><span class="detail"><strong>1 '+p[0]+' → '+(v===null?'—':fmt(v,v>=100?0:3))+' '+p[1]+'</strong><small>'+c.code+' ('+c.name+')</small></span>';
+ setFlag(b.querySelector('.flag'),p[1]);b.onclick=()=>{s.from=p[0];s.to=p[1];save();draw();close();refresh()};
  let del=document.createElement('button');del.className='remove';del.textContent='×';del.title='Remove';del.onclick=()=>{s.favorites.splice(i,1);save();favorites()};
  let up=document.createElement('button');up.className='move';up.textContent='≡';up.title='Move favorite up';up.onclick=()=>{if(i){let a=s.favorites[i-1];s.favorites[i-1]=s.favorites[i];s.favorites[i]=a;save();favorites()}};
  item.append(b,up,del);
@@ -199,7 +193,7 @@ function favorites(){let body=$('sheetBody');top('Favorites','+',()=>{s.screen='
  body.append(item)})}
 function live(){let body=$('sheetBody');top('Live Rates','⟳',()=>refresh(true).then(()=>{if(s.screen==='live')live()}));body.replaceChildren();
  let note=document.createElement('div');note.className='infoLine';note.textContent='Rates per 1 USD • IQD from MXDollar, highest Baghdad BUY quote';let list=document.createElement('div');
- function fill(){list.replaceChildren();let q=s.query.toLowerCase().trim();for(const c of currencies.filter(x=>!q||x.code.toLowerCase().includes(q)||x.name.toLowerCase().includes(q))){let v=rate('USD',c.code),item=document.createElement('div');item.className='item';item.innerHTML='<span class="flag">'+c.flag+'</span><span class="detail"><strong>'+c.code+'</strong><small>'+c.name+'</small></span><span class="detail" style="text-align:right;flex:0 0 auto;max-width:48%"><strong>'+ (v===null?'—':fmt(v,v>=100?0:3)) +'</strong><small>'+ (c.code==='IQD'?'MXDollar • Highest BUY':v===null?'Unavailable':'per 1 USD') +'</small></span>';list.append(item)}}
+ function fill(){list.replaceChildren();let q=s.query.toLowerCase().trim();for(const c of currencies.filter(x=>!q||x.code.toLowerCase().includes(q)||x.name.toLowerCase().includes(q))){let v=rate('USD',c.code),item=document.createElement('div');item.className='item';item.innerHTML='<span class="flag">'+''+'</span><span class="detail"><strong>'+c.code+'</strong><small>'+c.name+'</small></span><span class="detail" style="text-align:right;flex:0 0 auto;max-width:48%"><strong>'+ (v===null?'—':fmt(v,v>=100?0:3)) +'</strong><small>'+ (c.code==='IQD'?'MXDollar • Highest BUY':v===null?'Unavailable':'per 1 USD') +'</small></span>';setFlag(item.querySelector('.flag'),c.code);list.append(item)}}
  body.append(searchBox(fill),note,list);fill()}
 function settings(){let body=$('sheetBody');top('Settings','');body.replaceChildren();let b=document.createElement('button');b.className='settingsCard';b.innerHTML='<span style="font-size:32px;color:#43d56b">⇩</span><span><strong>Install MX Currency</strong><small>Add to Home Screen on iPhone, Android or desktop</small></span>';b.onclick=install;
  let m=document.createElement('div');m.className='mark';m.innerHTML='M<b>X</b>';let n=document.createElement('div');n.className='brand';n.textContent='MazenmiX';body.append(b,m,n)}
@@ -215,10 +209,10 @@ async function refresh(force=false){if(s.busy||!navigator.onLine)return;s.busy=t
  let bucket=Math.floor(Date.now()/300000);
  let needsBook=force||Date.now()-s.lastBase>300000;
  const jobs=[];
- if(needsBook){s.lastBase=Date.now();jobs.push((async()=>{let b=await first(['/api/rates?v='+bucket,'https://raw.githubusercontent.com/mazenmix/MX-Currency-/main/data/rates.json?v='+bucket,'https://open.er-api.com/v6/latest/USD']);if(b?.rates&&(b.base==='USD'||b.result==='success')){for(let [k,v] of Object.entries(b.rates))if(k!=='IQD'&&Number(v)>0)s.rates[k]=Number(v);for(let [k,v] of Object.entries(b.meta||{}))if(k!=='IQD')s.meta[k]=v;s.updated=b.updatedAt||new Date().toISOString()}})())}
+ if(needsBook){s.lastBase=Date.now();jobs.push((async()=>{let b=await first(['/api/rates?v='+bucket,'https://raw.githubusercontent.com/mazenmix/MX-Currency-/main/data/rates.json?v='+bucket,'https://open.er-api.com/v6/latest/USD']);if(b?.rates&&(b.base==='USD'||b.result==='success')){for(let [k,v] of Object.entries(b.rates))if(k!=='IQD'&&ACTIVE.has(k)&&Number(v)>0)s.rates[k]=Number(v);for(let [k,v] of Object.entries(b.meta||{}))if(k!=='IQD'&&ACTIVE.has(k))s.meta[k]=v;s.updated=b.updatedAt||new Date().toISOString()}})())}
  if(s.from==='IQD'||s.to==='IQD'||s.favorites.some(p=>p.includes('IQD')))jobs.push((async()=>{let d=await first(['/api/iqd?v='+Math.floor(Date.now()/60000),'https://mxdollar.pages.dev/api/market?v='+Math.floor(Date.now()/60000)]);let x=iqdQuote(d);if(x){s.rates.IQD=x.rate;s.meta.IQD={buy:x.rate,sell:x.rate,kind:'parallel',source:'MXDollar · Highest BUY · '+x.source};s.updated=new Date().toISOString()}})());
  if(s.from==='ARS'||s.to==='ARS')jobs.push((async()=>{let b=await first(['/api/ars','https://dolarapi.com/v1/dolares/blue']);if(b?.compra>0&&b?.venta>0){s.rates.ARS=(b.compra+b.venta)/2;s.meta.ARS={buy:b.compra,sell:b.venta,kind:'parallel'}}})());
- await Promise.allSettled(jobs);save();draw();
+ await Promise.allSettled(jobs);currencies=catalog();save();draw();if(s.screen&&!document.activeElement?.matches('.search input'))render();
  }finally{s.busy=false}}
 document.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>add(b.dataset.n)));
 $('clear').onclick=()=>{s.input='';draw()};$('backspace').onclick=()=>{s.input=s.input.slice(0,-1);draw()};
