@@ -123,7 +123,7 @@ const s={from:ACTIVE.has(saved.from)?saved.from:'USD',to:ACTIVE.has(saved.to)?sa
 if(s.rates.IQD>0&&s.rates.IQD<4)s.rates.IQD*=1000;if(s.rates.IQD>=80&&s.rates.IQD<=350)s.rates.IQD*=10;
 if(s.rates.IQD&&!(s.rates.IQD>=800&&s.rates.IQD<=3500))delete s.rates.IQD;
 function save(){try{localStorage.setItem(K,JSON.stringify({from:s.from,to:s.to,favorites:s.favorites,rates:s.rates,meta:s.meta,updated:s.updated}))}catch{}}
-function name(code){if(code==='IQD')return 'Iraqi Dinar (Parallel)';const custom={XCG:'Caribbean Guilder',ZWG:'Zimbabwe Gold (ZiG)',SLE:'Sierra Leonean Leone'};if(custom[code])return custom[code];try{return new Intl.DisplayNames(['en'],{type:'currency'}).of(code)||code}catch{return code}}
+function name(code){if(code==='IQD')return 'Iraqi Dinar';const custom={XCG:'Caribbean Guilder',ZWG:'Zimbabwe Gold (ZiG)',SLE:'Sierra Leonean Leone'};if(custom[code])return custom[code];try{return new Intl.DisplayNames(['en'],{type:'currency'}).of(code)||code}catch{return code}}
 function catalog(){return [...ACTIVE].filter(code=>code==='USD'||Number(s.rates[code])>0).map(code=>({code,name:name(code)})).sort((a,b)=>{let i=P.indexOf(a.code),j=P.indexOf(b.code);return i>=0&&j>=0?i-j:i>=0?-1:j>=0?1:a.name.localeCompare(b.name)})}
 let currencies=catalog();
 const SEARCH_ALIAS={EUR:'spain spanish croatia croatian bulgaria bulgarian germany france belgium italy portugal austria netherlands greece ireland finland slovakia slovenia luxembourg cyprus malta estonia latvia lithuania'};
