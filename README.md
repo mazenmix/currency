@@ -13,6 +13,8 @@ Connect the GitHub repository mazenmix/currency to a new Cloudflare Pages projec
 Deployment URL will be assigned by Cloudflare Pages. Creating a GitHub repository alone does not create a live pages.dev URL.
 
 ## IQD / Iraqi market
-Cloudflare Pages Function /api/iqd requests https://mxdollar.pages.dev/api/market and selects the **highest BUY**, among Kifah, Harithiya, and Kukh, as USD→IQD. The site returns IQD per **one USD**, dividing the full IQD price for $100 by 100. Normalizes MXDollar values shown as 164, 1,640 or 164,000 per 100 USD to the same 164,000 IQD/$100. No central-bank rate is substituted.
+Cloudflare Pages Function `/api/iqd` gets the latest **Kifah SELL** price directly from `https://iraqsm.com/data/fx.json` (IQWealth). It uses `parallel.sell` in IQD per 1 USD, preserves `parallel.publishedAt` and `parallel.stale`, and returns 503 if that source is not available. It never falls back to MXDollar, Telegram, the official CBI rate, or a guessed price. The UI shows the original publication time in Baghdad and attributes the USD/IQD quote to IQWealth. The source is refreshed by the site periodically; IQWealth publishes market readings several times each day, not tick-by-tick.
+
+Other international currency cross rates continue to use the existing global rate book. The "IQWealth only" constraint applies to the Baghdad USD/IQD quote. See IQWealth's usage conditions for public/commercial deployments.
 
 Other prices are loaded from the continuously refreshed iOS MX Currency project's rates.json at mazenmix/MX-Currency- and cached locally for offline use. The app doesn't fabricate prices when a source is unavailable.
