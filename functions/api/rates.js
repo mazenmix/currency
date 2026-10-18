@@ -1,10 +1,24 @@
+// Sole world-reference currency data source: IQWealth public currencies feed.
 export async function onRequestGet(){
   try{
-    const url='https://raw.githubusercontent.com/mazenmix/MX-Currency-/main/data/rates.json?v='+Math.floor(Date.now()/300000);
-    const response=await fetch(url,{cf:{cacheTtl:0},headers:{Accept:'application/json'}});
-    if(!response.ok)throw Error('Rate book unavailable');
-    const body=await response.json();
-    if(body.base!=='USD'||!body.rates)throw Error('Invalid rate book');
-    return Response.json(body,{headers:{'Cache-Control':'no-store'}});
-  }catch(e){return Response.json({error:String(e.message||e)},{status:503,headers:{'Cache-Control':'no-store'}})}
+    const response=await fetch('https://iraqsm.com/data/currencies.json',{
+      headers:{Accept:'application/json'},cf:{cacheTtl:60,cacheEverything:true}
+    });
+    if(!response.ok)throw Error('IQWealth HTTP '+response.status);
+    const d=await response.json();
+    if(d?.kind!=='currencies'||d?.publisher!=='IQWealth (iraqsm.com)'||!d.perUsd)throw Error('Invalid IQWealth currency feed');
+    const rates={USD:1};
+    for(const [code,v] of Object.entries(d.perUsd)){
+      const n=Number(v);
+      if(/^[A-Z]{3}$/.test(code)&&Number.isFinite(n)&&n>0&&code!=='IQD')rates[code]=n;
+    }
+    return Response.json({base:'USD',source:'IQWealth',rates,meta:{},updatedAt:d.generatedAt||null,
+      asOf:d.asOf||null,attribution:'Data: IQWealth — https://iraqsm.com'},{
+      headers:{'Cache-Control':'public, max-age=60'}
+    });
+  }catch(e){
+    return Response.json({error:'IQWealth world reference data unavailable; no other source used',details:String(e.message||e)},{
+      status:503,headers:{'Cache-Control':'no-store'}
+    });
+  }
 }
