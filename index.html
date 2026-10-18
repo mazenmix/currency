@@ -119,7 +119,7 @@ const ACTIVE=new Set("AED AFN ALL AMD AOA ARS AUD AWG AZN BAM BBD BDT BHD BIF BM
 const F=Object.fromEntries(('USD:🇺🇸 EUR:🇪🇺 GBP:🇬🇧 IQD:🇮🇶 PHP:🇵🇭 IDR:🇮🇩 TRY:🇹🇷 THB:🇹🇭 VND:🇻🇳 AED:🇦🇪 SAR:🇸🇦 QAR:🇶🇦 KWD:🇰🇼 BHD:🇧🇭 OMR:🇴🇲 JOD:🇯🇴 EGP:🇪🇬 MYR:🇲🇾 SGD:🇸🇬 JPY:🇯🇵 CNY:🇨🇳 HKD:🇭🇰 KRW:🇰🇷 INR:🇮🇳 AUD:🇦🇺 NZD:🇳🇿 CAD:🇨🇦 CHF:🇨🇭 ARS:🇦🇷 BRL:🇧🇷 MXN:🇲🇽 RUB:🇷🇺 VND:🇻🇳 AFN:🇦🇫 BDT:🇧🇩 PKR:🇵🇰 ZAR:🇿🇦 EUR:🇪🇺').split(' ').map(x=>[x.slice(0,3),x.slice(4)]));
 const defaultFav=[['USD','PHP'],['USD','IQD'],['USD','IDR'],['USD','TRY'],['USD','THB'],['USD','VND']];
 let saved={};try{saved=JSON.parse(localStorage.getItem(K)||'{}')}catch{}
-const s={from:ACTIVE.has(saved.from)?saved.from:'USD',to:ACTIVE.has(saved.to)?saved.to:'IQD',input:'',favorites:(Array.isArray(saved.favorites)?saved.favorites:defaultFav).filter(p=>Array.isArray(p)&&p.length===2&&ACTIVE.has(p[0])&&ACTIVE.has(p[1])),rates:{USD:1,...(saved.rates||{})},meta:{...(saved.meta||{})},updated:saved.updated||null,screen:'',query:'',busy:false,lastBase:0};
+const s={from:ACTIVE.has(saved.from)?saved.from:'USD',to:ACTIVE.has(saved.to)?saved.to:'IQD',input:'',favorites:(Array.isArray(saved.favorites)?saved.favorites:defaultFav).filter(p=>Array.isArray(p)&&p.length===2&&ACTIVE.has(p[0])&&ACTIVE.has(p[1])),rates:{USD:1,...(saved.rates||{})},meta:{...(saved.meta||{})},updated:saved.updated||null,screen:'',query:'',busy:false,lastBase:0,lastCheckedAt:null};
 // Display the last *verified* IQWealth reading while awaiting the live endpoint.
 // Label the stored quote as stale until a new source check succeeds.
 try{
@@ -176,10 +176,11 @@ function draw(){let a=s.input||'0',r=rate(s.from,s.to),out=r===null?'—':fmt((N
  $('rate').style.fontSize=$('rate').textContent.length>24?'16px':'20px';
  for(const side of ['from','to']){setFlag($(side+'Flag'),s[side]);$(side+'Code').textContent=s[side];}
  const isIqd=s.from==='IQD'||s.to==='IQD';
- const published=isIqd?s.meta.IQD?.publishedAt:s.updated;
- const d=published?new Date(published):null;
+ // Last Updated means the latest successful data synchronization, not when IQWealth published the quote.
+ const publishedMs=Date.parse(isIqd?(s.meta.IQD?.publishedAt||''):(s.updated||''));
+ const late=isIqd&&(s.meta.IQD?.stale===true||(Number.isFinite(publishedMs)&&Date.now()-publishedMs>36*3600*1000));
+ const d=s.lastCheckedAt?new Date(s.lastCheckedAt):null;
  const valid=d&&!isNaN(+d);
- const late=isIqd&&(s.meta.IQD?.stale===true||(valid&&Date.now()-d.getTime()>36*3600*1000));
  const dateLabel=valid?d.toLocaleTimeString('en-US',{timeZone:'Asia/Baghdad',hour:'numeric',minute:'2-digit',hour12:true}).replace(/\s*(AM|PM)\s*$/i,''):'—';
  $('updated').textContent=(late?'Stale • ':'')+'Last Updated: '+dateLabel;
 }
@@ -231,9 +232,13 @@ async function refresh(force=false){if(s.busy)return;s.busy=true;try{
  let bucket=Math.floor(Date.now()/300000);
  let needsBook=force||Date.now()-s.lastBase>60000;
  const jobs=[];
- if(needsBook){s.lastBase=Date.now();jobs.push((async()=>{let b=await first(['/api/rates?v='+bucket]);if(b?.base==='USD'&&b.rates&&Number(b.rates.PHP)>0){const next={USD:1};for(const [k,v] of Object.entries(b.rates))if(k!=='IQD'&&ACTIVE.has(k)&&Number(v)>0)next[k]=Number(v);if(s.meta.IQD?.source==='IQWealth · Kifah SELL'&&Number(s.rates.IQD)>0)next.IQD=s.rates.IQD;s.rates=next;for(const [k,v] of Object.entries(b.meta||{}))if(k!=='IQD'&&ACTIVE.has(k))s.meta[k]=v;s.updated=b.updatedAt||s.updated}})())}
- if(s.from==='IQD'||s.to==='IQD'||s.favorites.some(p=>p.includes('IQD')))jobs.push((async()=>{let d=await first(['/api/iqd?v='+Math.floor(Date.now()/60000)]);let x=iqdQuote(d);if(x){s.rates.IQD=x.rate;s.meta.IQD={buy:x.rate,sell:x.rate,kind:'parallel',source:'IQWealth · Kifah SELL',publishedAt:x.publishedAt,stale:x.stale};if(x.publishedAt)s.updated=x.publishedAt;try{localStorage.setItem('mx.iqwealth.iqd.verified.v1',JSON.stringify({source:'IQWealth',rate:x.rate,publishedAt:x.publishedAt}))}catch{}}else if(s.meta.IQD){s.meta.IQD.stale=true}else{delete s.rates.IQD;delete s.meta.IQD}})());
- await Promise.allSettled(jobs);currencies=catalog();save();draw();if(s.screen&&!document.activeElement?.matches('.search input'))render();
+ let bookLoaded=false,iqdLoaded=false;
+ if(needsBook){s.lastBase=Date.now();jobs.push((async()=>{let b=await first(['/api/rates?v='+bucket]);if(b?.base==='USD'&&b.rates&&Number(b.rates.PHP)>0){const next={USD:1};for(const [k,v] of Object.entries(b.rates))if(k!=='IQD'&&ACTIVE.has(k)&&Number(v)>0)next[k]=Number(v);if(s.meta.IQD?.source==='IQWealth · Kifah SELL'&&Number(s.rates.IQD)>0)next.IQD=s.rates.IQD;s.rates=next;for(const [k,v] of Object.entries(b.meta||{}))if(k!=='IQD'&&ACTIVE.has(k))s.meta[k]=v;s.updated=b.updatedAt||s.updated;bookLoaded=true}})())}
+ if(s.from==='IQD'||s.to==='IQD'||s.favorites.some(p=>p.includes('IQD')))jobs.push((async()=>{let d=await first(['/api/iqd?v='+Math.floor(Date.now()/60000)]);let x=iqdQuote(d);if(x){iqdLoaded=true;s.rates.IQD=x.rate;s.meta.IQD={buy:x.rate,sell:x.rate,kind:'parallel',source:'IQWealth · Kifah SELL',publishedAt:x.publishedAt,stale:x.stale};if(x.publishedAt)s.updated=x.publishedAt;try{localStorage.setItem('mx.iqwealth.iqd.verified.v1',JSON.stringify({source:'IQWealth',rate:x.rate,publishedAt:x.publishedAt}))}catch{}}else if(s.meta.IQD){s.meta.IQD.stale=true}else{delete s.rates.IQD;delete s.meta.IQD}})());
+ await Promise.allSettled(jobs);
+ const isIqdPair=s.from==='IQD'||s.to==='IQD';
+ if(isIqdPair?iqdLoaded:bookLoaded)s.lastCheckedAt=Date.now();
+ currencies=catalog();save();draw();if(s.screen&&!document.activeElement?.matches('.search input'))render();
  }finally{s.busy=false}}
 document.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>add(b.dataset.n)));
 $('clear').onclick=()=>{s.input='';draw()};$('backspace').onclick=()=>{s.input=s.input.slice(0,-1);draw()};
