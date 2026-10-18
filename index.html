@@ -82,7 +82,7 @@ footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:flex;align-items:cen
 <body>
 <main id="app">
  <header>
-  <div id="rate" aria-live="polite">1 USD = — PHP</div>
+  <div id="rate" aria-live="polite">1 USD = — IQD</div>
   </header>
  <section class="display" aria-label="Conversion display">
   <div class="amount" id="entered">0</div><span class="equals">=</span><button class="amount" id="converted" title="Copy result">0</button>
@@ -90,7 +90,7 @@ footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:flex;align-items:cen
  <section class="pair">
   <button id="fromSelect" aria-label="Starting Currency"><span id="fromFlag" class="flag">🇺🇸</span><span class="info"><span id="fromCode" class="code">USD</span><span class="hint">Tap to change</span></span></button>
   <svg class="arrow" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 16h26m-10-10 10 10-10 10"/></svg>
-  <button id="toSelect" aria-label="Ending Currency"><span id="toFlag" class="flag">🇵🇭</span><span class="info"><span id="toCode" class="code">PHP</span><span class="hint">Tap to change</span></span></button>
+  <button id="toSelect" aria-label="Ending Currency"><span id="toFlag" class="flag">🇮🇶</span><span class="info"><span id="toCode" class="code">IQD</span><span class="hint">Tap to change</span></span></button>
  </section>
  <section class="pad" aria-label="Calculator keypad">
   <button class="key" data-n="7">7</button><button class="key" data-n="8">8</button><button class="key" data-n="9">9</button>
@@ -119,7 +119,7 @@ const ACTIVE=new Set("AED AFN ALL AMD AOA ARS AUD AWG AZN BAM BBD BDT BHD BIF BM
 const F=Object.fromEntries(('USD:🇺🇸 EUR:🇪🇺 GBP:🇬🇧 IQD:🇮🇶 PHP:🇵🇭 IDR:🇮🇩 TRY:🇹🇷 THB:🇹🇭 VND:🇻🇳 AED:🇦🇪 SAR:🇸🇦 QAR:🇶🇦 KWD:🇰🇼 BHD:🇧🇭 OMR:🇴🇲 JOD:🇯🇴 EGP:🇪🇬 MYR:🇲🇾 SGD:🇸🇬 JPY:🇯🇵 CNY:🇨🇳 HKD:🇭🇰 KRW:🇰🇷 INR:🇮🇳 AUD:🇦🇺 NZD:🇳🇿 CAD:🇨🇦 CHF:🇨🇭 ARS:🇦🇷 BRL:🇧🇷 MXN:🇲🇽 RUB:🇷🇺 VND:🇻🇳 AFN:🇦🇫 BDT:🇧🇩 PKR:🇵🇰 ZAR:🇿🇦 EUR:🇪🇺').split(' ').map(x=>[x.slice(0,3),x.slice(4)]));
 const defaultFav=[['USD','PHP'],['USD','IQD'],['USD','IDR'],['USD','TRY'],['USD','THB'],['USD','VND']];
 let saved={};try{saved=JSON.parse(localStorage.getItem(K)||'{}')}catch{}
-const s={from:ACTIVE.has(saved.from)?saved.from:'USD',to:ACTIVE.has(saved.to)?saved.to:'PHP',input:'',favorites:(Array.isArray(saved.favorites)?saved.favorites:defaultFav).filter(p=>Array.isArray(p)&&p.length===2&&ACTIVE.has(p[0])&&ACTIVE.has(p[1])),rates:{USD:1,...(saved.rates||{})},meta:saved.meta||{},updated:saved.updated||null,screen:'',query:'',busy:false,lastBase:0};
+const s={from:ACTIVE.has(saved.from)?saved.from:'USD',to:ACTIVE.has(saved.to)?saved.to:'IQD',input:'',favorites:(Array.isArray(saved.favorites)?saved.favorites:defaultFav).filter(p=>Array.isArray(p)&&p.length===2&&ACTIVE.has(p[0])&&ACTIVE.has(p[1])),rates:{USD:1,...(saved.rates||{})},meta:saved.meta||{},updated:saved.updated||null,screen:'',query:'',busy:false,lastBase:0};
 if(s.rates.IQD>0&&s.rates.IQD<4)s.rates.IQD*=1000;if(s.rates.IQD>=80&&s.rates.IQD<=350)s.rates.IQD*=10;
 if(s.rates.IQD&&!(s.rates.IQD>=800&&s.rates.IQD<=3500))delete s.rates.IQD;
 function save(){try{localStorage.setItem(K,JSON.stringify({from:s.from,to:s.to,favorites:s.favorites,rates:s.rates,meta:s.meta,updated:s.updated}))}catch{}}
