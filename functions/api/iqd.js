@@ -1,24 +1,43 @@
-// Baghdad parallel IQD: take the highest USD BUY rate per $100 at MXDollar.
+// Sole USD/IQD market source: IQWealth (iraqsm.com), Kifah SELL.
+// No Telegram, MXDollar, exchange-rate API or fabricated fallback.
+const URL = 'https://iraqsm.com/data/fx.json';
 export async function onRequestGet() {
   try {
-    const url='https://mxdollar.pages.dev/api/market?v='+Math.floor(Date.now()/60000);
-    const response=await fetch(url,{headers:{Accept:'application/json','Cache-Control':'no-cache'},cf:{cacheTtl:0,cacheEverything:false}});
-    if(!response.ok)throw Error('MXDollar unavailable: '+response.status);
-    const data=await response.json();
-    const normalize=raw=>{
-      const x=Number(String(raw??'').replace(/,/g,''));
-      if(x>=80000&&x<=350000)return x;
-      if(x>=800&&x<=3500)return x*100;
-      if(x>=80&&x<=350)return x*1000;
-      return null;
-    };
-    const quotes=[['Kifah',data?.kifah],['Harithiya',data?.harithiya],['Kukh',data?.kukh]]
-      .map(([name,q])=>({market:name,perHundred:normalize(q?.buy)}))
-      .filter(x=>x.perHundred!==null)
-      .sort((a,b)=>b.perHundred-a.perHundred);
-    if(!quotes.length)throw Error('No valid cash BUY quote');
-    return Response.json({rate:quotes[0].perHundred/100,perHundred:quotes[0].perHundred,market:quotes[0].market,source:'MXDollar • Highest BUY',updatedAt:new Date().toISOString()},{headers:{'Cache-Control':'no-store'}});
-  }catch(e){
-    return Response.json({error:'Live MXDollar BUY quote unavailable',details:String(e.message||e)},{status:503,headers:{'Cache-Control':'no-store'}});
+    const response = await fetch(URL, {
+      headers: { Accept: 'application/json' },
+      cf: { cacheTtl: 60, cacheEverything: true }
+    });
+    if (!response.ok) throw Error('IQWealth HTTP ' + response.status);
+    const payload = await response.json();
+    const parallel = payload?.data?.parallel ?? payload?.parallel
+      ?? payload?.data?.fx?.parallel ?? payload?.fx?.parallel;
+    const numeric = value => Number(String(value ?? '').replace(/,/g, ''));
+    const sell = numeric(parallel?.sell);
+    const buy = numeric(parallel?.buy);
+    if (!Number.isFinite(sell) || sell < 800 || sell > 3500) {
+      throw Error('Missing or invalid Kifah SELL quote from IQWealth');
+    }
+    const publishedAt = parallel?.publishedAt ?? payload?.data?.publishedAt
+      ?? payload?.publishedAt ?? payload?.asOf ?? null;
+    const old = publishedAt && !Number.isNaN(Date.parse(publishedAt))
+      && Date.now() - Date.parse(publishedAt) > 36 * 3600 * 1000;
+    const stale = parallel?.stale === true || !!old;
+    return Response.json({
+      rate: sell,
+      perHundred: Math.round(sell * 100),
+      sell,
+      buy: Number.isFinite(buy) && buy >= 800 && buy <= 3500 ? buy : null,
+      market: 'Kifah',
+      source: 'IQWealth · iraqsm.com',
+      updatedAt: publishedAt,
+      stale,
+      asOf: payload?.asOf ?? null,
+      attribution: 'Data: IQWealth — https://iraqsm.com'
+    }, { headers: { 'Cache-Control': 'public, max-age=60' } });
+  } catch (error) {
+    return Response.json({
+      error: 'IQWealth price unavailable; no alternative source is used',
+      details: String(error.message || error)
+    }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
   }
 }
