@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<meta name="mx-release" content="2026-10-15-actual-rates-flags-v4">
+<meta name="mx-release" content="2026-10-18-iqwealth-kifah-sell-v1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MX Currency">
@@ -45,7 +45,7 @@ header{position:relative;flex:0 0 67px;height:67px;display:flex;justify-content:
 .key.swap{grid-row:span 2;background:#44d74d;flex-direction:column;gap:10px;font-size:17px;font-weight:450}
 .key.swap:active{background:#30bd3c}.key.swap svg{height:30px;width:30px}
 .key.zero{grid-column:span 2}
-footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:14px;gap:10px}
+footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:12px;gap:8px}footer a{color:#9abfe8;text-decoration:none;white-space:nowrap;font-size:11px}footer a:hover{text-decoration:underline}
 #updated{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}#brandSignature{color:#a0a0a4;font-size:14px;letter-spacing:.1px;flex:0 0 auto;white-space:nowrap;font-weight:600}
 #settingsButton{background:none;color:var(--blue);font-size:15px;font-weight:650;padding:12px 0}
 #shade{position:fixed;inset:0;display:none;z-index:15;background:#000;justify-content:center}
@@ -107,7 +107,7 @@ footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:flex;align-items:cen
   </button>
   <button class="key" data-n=".">.</button><button class="key zero" data-n="0">0</button>
  </section>
- <footer><span id="updated">Last Updated: —</span><span id="brandSignature">MazenmiX</span></footer>
+ <footer><span id="updated">Published: —</span><a href="https://iraqsm.com/en" target="_blank" rel="noopener noreferrer" title="USD/IQD data: IQWealth">Data: IQWealth</a><span id="brandSignature">MazenmiX</span></footer>
 </main>
 <div id="shade" aria-hidden="true"><section id="sheet" role="dialog" aria-modal="true"><div class="sheetTop"><button id="closeSheet" aria-label="Close">×</button><h2 id="sheetTitle">Currencies</h2><button id="rightSheet" class="primary" aria-label="Done">✓</button></div><div id="sheetBody"></div></section></div>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -161,8 +161,13 @@ function draw(){let a=s.input||'0',r=rate(s.from,s.to),out=r===null?'—':fmt((N
  $('rate').textContent='1 '+s.from+' = '+(r===null?'—':fmt(r,s.to==='IQD'?0:3))+' '+s.to;
  $('rate').style.fontSize=$('rate').textContent.length>24?'16px':'20px';
  for(const side of ['from','to']){setFlag($(side+'Flag'),s[side]);$(side+'Code').textContent=s[side];}
- let d=s.updated?new Date(s.updated):null;
- $('updated').textContent='Last Updated: '+(d&&!isNaN(+d)?d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false}):'—');
+ const isIqd=s.from==='IQD'||s.to==='IQD';
+ const published=isIqd?s.meta.IQD?.publishedAt:s.updated;
+ const d=published?new Date(published):null;
+ const valid=d&&!isNaN(+d);
+ const late=isIqd&&(s.meta.IQD?.stale===true||(valid&&Date.now()-d.getTime()>36*3600*1000));
+ const dateLabel=valid?d.toLocaleString('en-GB',{timeZone:'Asia/Baghdad',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}):'—';
+ $('updated').textContent=(late?'Stale • ':'')+'Published: '+dateLabel;
 }
 function add(n){if(n==='.'){if(!s.input.includes('.'))s.input=s.input?s.input+'.':'0.'}else if(s.input.length<16)s.input=s.input==='0'?n:s.input+n;draw()}
 function flip(){let t=s.from;s.from=s.to;s.to=t;save();draw();refresh()}
@@ -196,8 +201,8 @@ function favorites(){let body=$('sheetBody');top('Favorites','+',()=>{s.screen='
  up.addEventListener('pointerup',ev=>{if(touchY!==null){let offset=Math.round((ev.clientY-touchY)/Math.max(55,item.clientHeight));touchY=null;if(offset){let j=Math.max(0,Math.min(s.favorites.length-1,i+offset));let v=s.favorites.splice(i,1)[0];s.favorites.splice(j,0,v);save();favorites()}}});
  body.append(item)})}
 function live(){let body=$('sheetBody');top('Live Rates','⟳',()=>refresh(true).then(()=>{if(s.screen==='live')live()}));body.replaceChildren();
- let note=document.createElement('div');note.className='infoLine';note.textContent='Rates per 1 USD • IQD from MXDollar, highest Baghdad BUY quote';let list=document.createElement('div');
- function fill(){list.replaceChildren();let q=s.query.toLowerCase().trim();for(const c of currencies.filter(x=>!q||searchMatch(x,q))){let v=rate('USD',c.code),item=document.createElement('div');item.className='item';item.innerHTML='<span class="flag">'+''+'</span><span class="detail"><strong>'+c.code+'</strong><small>'+c.name+'</small></span><span class="detail" style="text-align:right;flex:0 0 auto;max-width:48%"><strong>'+ (v===null?'—':fmt(v,v>=100?0:3)) +'</strong><small>'+ (c.code==='IQD'?'MXDollar • Highest BUY':v===null?'Unavailable':'per 1 USD') +'</small></span>';setFlag(item.querySelector('.flag'),c.code);list.append(item)}}
+ let note=document.createElement('div');note.className='infoLine';note.textContent='Rates per 1 USD • IQD from IQWealth (iraqsm.com), Kifah SELL quote';let list=document.createElement('div');
+ function fill(){list.replaceChildren();let q=s.query.toLowerCase().trim();for(const c of currencies.filter(x=>!q||searchMatch(x,q))){let v=rate('USD',c.code),item=document.createElement('div');item.className='item';item.innerHTML='<span class="flag">'+''+'</span><span class="detail"><strong>'+c.code+'</strong><small>'+c.name+'</small></span><span class="detail" style="text-align:right;flex:0 0 auto;max-width:48%"><strong>'+ (v===null?'—':fmt(v,v>=100?0:3)) +'</strong><small>'+ (c.code==='IQD'?'IQWealth • Kifah SELL':v===null?'Unavailable':'per 1 USD') +'</small></span>';setFlag(item.querySelector('.flag'),c.code);list.append(item)}}
  body.append(searchBox(fill),note,list);fill()}
 function settings(){let body=$('sheetBody');top('Settings','');body.replaceChildren();let b=document.createElement('button');b.className='settingsCard';b.innerHTML='<span style="font-size:32px;color:#43d56b">⇩</span><span><strong>Install MX Currency</strong><small>Add to Home Screen on iPhone, Android or desktop</small></span>';b.onclick=install;
  let m=document.createElement('div');m.className='mark';m.innerHTML='M<b>X</b>';let n=document.createElement('div');n.className='brand';n.textContent='MazenmiX';body.append(b,m,n)}
@@ -207,14 +212,13 @@ function toast(str){let t=$('toast');t.textContent=str;t.style.display='block';s
 async function install(){if(prompt){prompt.prompt();await prompt.userChoice;prompt=null}else toast(/iPhone|iPad/i.test(navigator.userAgent)?'Safari → Share → Add to Home Screen':'Browser menu → Install app')}
 async function json(url){const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),9000);try{let r=await fetch(url,{cache:'no-store',signal:ctrl.signal,headers:{Accept:'application/json'}});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(timer)}}
 async function first(urls){for(let u of urls){try{return await json(u)}catch{}}return null}
-function normalPrice(raw){let n=Number(String(raw??'').replace(/,/g,''));return n>=80000&&n<=350000?n:n>=800&&n<=3500?n*100:n>=80&&n<=350?n*1000:null}
-function iqdQuote(d){if(d&&Number(d.rate)>=800&&Number(d.rate)<=3500)return {rate:Number(d.rate),source:d.market||'MXDollar'};let a=[['Kifah',d?.kifah?.buy],['Harithiya',d?.harithiya?.buy],['Kukh',d?.kukh?.buy]].map(x=>({source:x[0],price:normalPrice(x[1])})).filter(x=>x.price);a.sort((x,y)=>y.price-x.price);return a.length?{rate:a[0].price/100,source:a[0].source}:null}
+function iqdQuote(d){const n=Number(d?.sell??d?.rate);return d?.source==='IQWealth · iraqsm.com'&&n>=800&&n<=3500?{rate:n,publishedAt:d.updatedAt||null,stale:d.stale===true}:null}
 async function refresh(force=false){if(s.busy||!navigator.onLine)return;s.busy=true;try{
  let bucket=Math.floor(Date.now()/300000);
  let needsBook=force||Date.now()-s.lastBase>300000;
  const jobs=[];
  if(needsBook){s.lastBase=Date.now();jobs.push((async()=>{let b=await first(['/api/rates?v='+bucket,'https://raw.githubusercontent.com/mazenmix/MX-Currency-/main/data/rates.json?v='+bucket,'https://open.er-api.com/v6/latest/USD']);if(b?.rates&&(b.base==='USD'||b.result==='success')){for(let [k,v] of Object.entries(b.rates))if(k!=='IQD'&&ACTIVE.has(k)&&Number(v)>0)s.rates[k]=Number(v);for(let [k,v] of Object.entries(b.meta||{}))if(k!=='IQD'&&ACTIVE.has(k))s.meta[k]=v;s.updated=b.updatedAt||new Date().toISOString()}})())}
- if(s.from==='IQD'||s.to==='IQD'||s.favorites.some(p=>p.includes('IQD')))jobs.push((async()=>{let d=await first(['/api/iqd?v='+Math.floor(Date.now()/60000),'https://mxdollar.pages.dev/api/market?v='+Math.floor(Date.now()/60000)]);let x=iqdQuote(d);if(x){s.rates.IQD=x.rate;s.meta.IQD={buy:x.rate,sell:x.rate,kind:'parallel',source:'MXDollar · Highest BUY · '+x.source};s.updated=new Date().toISOString()}})());
+ if(s.from==='IQD'||s.to==='IQD'||s.favorites.some(p=>p.includes('IQD')))jobs.push((async()=>{let d=await first(['/api/iqd?v='+Math.floor(Date.now()/60000)]);let x=iqdQuote(d);if(x){s.rates.IQD=x.rate;s.meta.IQD={buy:x.rate,sell:x.rate,kind:'parallel',source:'IQWealth · Kifah SELL',publishedAt:x.publishedAt,stale:x.stale};if(x.publishedAt)s.updated=x.publishedAt}else if(s.meta.IQD){s.meta.IQD.stale=true}})());
  if(s.from==='ARS'||s.to==='ARS')jobs.push((async()=>{let b=await first(['/api/ars','https://dolarapi.com/v1/dolares/blue']);if(b?.compra>0&&b?.venta>0){s.rates.ARS=(b.compra+b.venta)/2;s.meta.ARS={buy:b.compra,sell:b.venta,kind:'parallel'}}})());
  await Promise.allSettled(jobs);currencies=catalog();save();draw();if(s.screen&&!document.activeElement?.matches('.search input'))render();
  }finally{s.busy=false}}
