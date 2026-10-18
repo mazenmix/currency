@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<meta name="mx-release" content="2026-10-18-iqwealth-all-currencies-v2">
+<meta name="mx-release" content="2026-10-18-iqwealth-ios-fix-v3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MX Currency">
@@ -107,7 +107,7 @@ footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:flex;align-items:cen
   </button>
   <button class="key" data-n=".">.</button><button class="key zero" data-n="0">0</button>
  </section>
- <footer><span id="updated">Published: —</span><a href="https://iraqsm.com/en" target="_blank" rel="noopener noreferrer" title="USD/IQD data: IQWealth">Data: IQWealth</a><span id="brandSignature">MazenmiX</span></footer>
+ <footer><span id="updated">Published: —</span><span id="brandSignature">MazenmiX</span></footer>
 </main>
 <div id="shade" aria-hidden="true"><section id="sheet" role="dialog" aria-modal="true"><div class="sheetTop"><button id="closeSheet" aria-label="Close">×</button><h2 id="sheetTitle">Currencies</h2><button id="rightSheet" class="primary" aria-label="Done">✓</button></div><div id="sheetBody"></div></section></div>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -120,6 +120,19 @@ const F=Object.fromEntries(('USD:🇺🇸 EUR:🇪🇺 GBP:🇬🇧 IQD:🇮🇶
 const defaultFav=[['USD','PHP'],['USD','IQD'],['USD','IDR'],['USD','TRY'],['USD','THB'],['USD','VND']];
 let saved={};try{saved=JSON.parse(localStorage.getItem(K)||'{}')}catch{}
 const s={from:ACTIVE.has(saved.from)?saved.from:'USD',to:ACTIVE.has(saved.to)?saved.to:'IQD',input:'',favorites:(Array.isArray(saved.favorites)?saved.favorites:defaultFav).filter(p=>Array.isArray(p)&&p.length===2&&ACTIVE.has(p[0])&&ACTIVE.has(p[1])),rates:{USD:1},meta:{},updated:null,screen:'',query:'',busy:false,lastBase:0};
+// Display the last *verified* IQWealth reading while awaiting the live endpoint.
+// Label the stored quote as stale until a new source check succeeds.
+try{
+ const savedQuote=JSON.parse(localStorage.getItem('mx.iqwealth.iqd.verified.v1')||'null');
+ const verifiedAt=Date.parse(savedQuote?.publishedAt||'');
+ if(savedQuote?.source==='IQWealth'&&Number(savedQuote.rate)>=800&&Number(savedQuote.rate)<=3500
+    &&Number.isFinite(verifiedAt)&&verifiedAt<=Date.now()+600000&&verifiedAt>Date.now()-72*3600000){
+  s.rates.IQD=Number(savedQuote.rate);
+  s.meta.IQD={buy:s.rates.IQD,sell:s.rates.IQD,kind:'parallel',source:'IQWealth · Kifah SELL',
+   publishedAt:savedQuote.publishedAt,stale:true};
+  s.updated=savedQuote.publishedAt;
+ }
+}catch{}
 if(s.rates.IQD>0&&s.rates.IQD<4)s.rates.IQD*=1000;if(s.rates.IQD>=80&&s.rates.IQD<=350)s.rates.IQD*=10;
 if(s.rates.IQD&&!(s.rates.IQD>=800&&s.rates.IQD<=3500))delete s.rates.IQD;
 function save(){try{localStorage.setItem(K,JSON.stringify({from:s.from,to:s.to,favorites:s.favorites,rates:s.rates,meta:s.meta,updated:s.updated}))}catch{}}
@@ -205,7 +218,7 @@ function live(){let body=$('sheetBody');top('Live Rates','⟳',()=>refresh(true)
  function fill(){list.replaceChildren();let q=s.query.toLowerCase().trim();for(const c of currencies.filter(x=>!q||searchMatch(x,q))){let v=rate('USD',c.code),item=document.createElement('div');item.className='item';item.innerHTML='<span class="flag">'+''+'</span><span class="detail"><strong>'+c.code+'</strong><small>'+c.name+'</small></span><span class="detail" style="text-align:right;flex:0 0 auto;max-width:48%"><strong>'+ (v===null?'—':fmt(v,v>=100?0:3)) +'</strong><small>'+ (c.code==='IQD'?'IQWealth • Kifah SELL':v===null?'Unavailable':'per 1 USD') +'</small></span>';setFlag(item.querySelector('.flag'),c.code);list.append(item)}}
  body.append(searchBox(fill),note,list);fill()}
 function settings(){let body=$('sheetBody');top('Settings','');body.replaceChildren();let b=document.createElement('button');b.className='settingsCard';b.innerHTML='<span style="font-size:32px;color:#43d56b">⇩</span><span><strong>Install MX Currency</strong><small>Add to Home Screen on iPhone, Android or desktop</small></span>';b.onclick=install;
- let m=document.createElement('div');m.className='mark';m.innerHTML='M<b>X</b>';let n=document.createElement('div');n.className='brand';n.textContent='MazenmiX';body.append(b,m,n)}
+ let m=document.createElement('div');m.className='mark';m.innerHTML='M<b>X</b>';let n=document.createElement('div');n.className='brand';n.textContent='MazenmiX';const credit=document.createElement('a');credit.href='https://iraqsm.com/en';credit.target='_blank';credit.rel='noopener noreferrer';credit.className='brand';credit.style.display='block';credit.textContent='Exchange-rate data: IQWealth';body.append(b,m,n,credit)}
 function render(){if(s.screen==='from'||s.screen==='to')choose(s.screen);else if(s.screen==='favorites')favorites();else if(s.screen==='add')addFav();else if(s.screen==='live')live();else if(s.screen==='settings')settings()}
 let prompt=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();prompt=e});
 function toast(str){let t=$('toast');t.textContent=str;t.style.display='block';setTimeout(()=>{t.style.display='none'},2200)}
@@ -213,13 +226,12 @@ async function install(){if(prompt){prompt.prompt();await prompt.userChoice;prom
 async function json(url){const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),9000);try{let r=await fetch(url,{cache:'no-store',signal:ctrl.signal,headers:{Accept:'application/json'}});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(timer)}}
 async function first(urls){for(let u of urls){try{return await json(u)}catch{}}return null}
 function iqdQuote(d){const n=Number(d?.sell??d?.rate);return d?.source==='IQWealth · iraqsm.com'&&n>=800&&n<=3500?{rate:n,publishedAt:d.updatedAt||null,stale:d.stale===true}:null}
-async function refresh(force=false){if(s.busy||!navigator.onLine)return;s.busy=true;try{
+async function refresh(force=false){if(s.busy)return;s.busy=true;try{
  let bucket=Math.floor(Date.now()/300000);
  let needsBook=force||Date.now()-s.lastBase>60000;
  const jobs=[];
- if(needsBook){s.lastBase=Date.now();jobs.push((async()=>{let b=await first(['/api/rates?v='+bucket]);if(b?.source==='IQWealth'&&b.base==='USD'&&b.rates){const next={USD:1};for(let [k,v] of Object.entries(b.rates))if(k!=='IQD'&&ACTIVE.has(k)&&Number(v)>0)next[k]=Number(v);if(s.meta.IQD?.source==='IQWealth · Kifah SELL'&&Number(s.rates.IQD)>0)next.IQD=s.rates.IQD;s.rates=next;s.updated=b.updatedAt||s.updated}}})())}
- if(s.from==='IQD'||s.to==='IQD'||s.favorites.some(p=>p.includes('IQD')))jobs.push((async()=>{let d=await first(['/api/iqd?v='+Math.floor(Date.now()/60000)]);let x=iqdQuote(d);if(x){s.rates.IQD=x.rate;s.meta.IQD={buy:x.rate,sell:x.rate,kind:'parallel',source:'IQWealth · Kifah SELL',publishedAt:x.publishedAt,stale:x.stale};if(x.publishedAt)s.updated=x.publishedAt}else{delete s.rates.IQD;delete s.meta.IQD}})());
- if(s.from==='ARS'||s.to==='ARS')jobs.push((async()=>{let b=await first(['/api/ars','https://dolarapi.com/v1/dolares/blue']);if(b?.compra>0&&b?.venta>0){s.rates.ARS=(b.compra+b.venta)/2;s.meta.ARS={buy:b.compra,sell:b.venta,kind:'parallel'}}})());
+ if(needsBook){s.lastBase=Date.now();jobs.push((async()=>{let b=await first(['/api/rates?v='+bucket]);if(b?.source==='IQWealth'&&b.base==='USD'&&b.rates){const next={USD:1};for(let [k,v] of Object.entries(b.rates))if(k!=='IQD'&&ACTIVE.has(k)&&Number(v)>0)next[k]=Number(v);if(s.meta.IQD?.source==='IQWealth · Kifah SELL'&&Number(s.rates.IQD)>0)next.IQD=s.rates.IQD;s.rates=next;s.updated=b.updatedAt||s.updated}})())}
+ if(s.from==='IQD'||s.to==='IQD'||s.favorites.some(p=>p.includes('IQD')))jobs.push((async()=>{let d=await first(['/api/iqd?v='+Math.floor(Date.now()/60000)]);let x=iqdQuote(d);if(x){s.rates.IQD=x.rate;s.meta.IQD={buy:x.rate,sell:x.rate,kind:'parallel',source:'IQWealth · Kifah SELL',publishedAt:x.publishedAt,stale:x.stale};if(x.publishedAt)s.updated=x.publishedAt;try{localStorage.setItem('mx.iqwealth.iqd.verified.v1',JSON.stringify({source:'IQWealth',rate:x.rate,publishedAt:x.publishedAt}))}catch{}}else if(s.meta.IQD){s.meta.IQD.stale=true}else{delete s.rates.IQD;delete s.meta.IQD}})());
  await Promise.allSettled(jobs);currencies=catalog();save();draw();if(s.screen&&!document.activeElement?.matches('.search input'))render();
  }finally{s.busy=false}}
 document.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>add(b.dataset.n)));
@@ -230,7 +242,7 @@ $('converted').onclick=async()=>{if($('converted').textContent==='—')return;tr
 document.addEventListener('keydown',e=>{if(s.screen||e.ctrlKey||e.metaKey||e.altKey||['INPUT','TEXTAREA'].includes(document.activeElement?.tagName))return;if(/^[0-9.]$/.test(e.key)){e.preventDefault();add(e.key)}else if(e.key==='Backspace'){e.preventDefault();$('backspace').click()}else if(e.key==='Delete'){e.preventDefault();$('clear').click()}else if(e.key==='Enter'){e.preventDefault();flip()}});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});window.addEventListener('online',()=>refresh(true));
 draw();refresh(true);setInterval(()=>{if(!document.hidden)refresh()},60000);
-if('serviceWorker'in navigator&&location.protocol==='https:')window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+if('serviceWorker'in navigator&&location.protocol==='https:')window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js?v=5').catch(()=>{}));
 })();
 </script>
 </body></html>
