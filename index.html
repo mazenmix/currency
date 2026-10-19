@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<meta name="mx-release" content="2026-10-18-last-successful-sync-v5">
+<meta name="mx-release" content="2026-10-19-market-precision-cleanup-v1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MX Currency">
@@ -172,7 +172,7 @@ if('ResizeObserver' in window)new ResizeObserver(scheduleNumberFit).observe($('a
 if(document.fonts?.ready)document.fonts.ready.then(scheduleNumberFit);
 function draw(){let a=s.input||'0',r=rate(s.from,s.to),out=r===null?'—':fmt((Number(s.input)||0)*r);$('entered').textContent=a;$('converted').textContent=out;
  scheduleNumberFit();
- $('rate').textContent='1 '+s.from+' = '+(r===null?'—':fmt(r,s.to==='IQD'?0:3))+' '+s.to;
+ $('rate').textContent='1 '+s.from+' = '+(r===null?'—':new Intl.NumberFormat('en-US',{maximumFractionDigits:s.to==='IQD'?2:3}).format(r))+' '+s.to;
  $('rate').style.fontSize=$('rate').textContent.length>24?'16px':'20px';
  for(const side of ['from','to']){setFlag($(side+'Flag'),s[side]);$(side+'Code').textContent=s[side];}
  const isIqd=s.from==='IQD'||s.to==='IQD';
@@ -216,11 +216,11 @@ function favorites(){let body=$('sheetBody');top('Favorites','+',()=>{s.screen='
  up.addEventListener('pointerup',ev=>{if(touchY!==null){let offset=Math.round((ev.clientY-touchY)/Math.max(55,item.clientHeight));touchY=null;if(offset){let j=Math.max(0,Math.min(s.favorites.length-1,i+offset));let v=s.favorites.splice(i,1)[0];s.favorites.splice(j,0,v);save();favorites()}}});
  body.append(item)})}
 function live(){let body=$('sheetBody');top('Live Rates','⟳',()=>refresh(true).then(()=>{if(s.screen==='live')live()}));body.replaceChildren();
- let note=document.createElement('div');note.className='infoLine';note.textContent='Rates per 1 USD • IQD from IQWealth (iraqsm.com), Kifah SELL quote';let list=document.createElement('div');
- function fill(){list.replaceChildren();let q=s.query.toLowerCase().trim();for(const c of currencies.filter(x=>!q||searchMatch(x,q))){let v=rate('USD',c.code),item=document.createElement('div');item.className='item';item.innerHTML='<span class="flag">'+''+'</span><span class="detail"><strong>'+c.code+'</strong><small>'+c.name+'</small></span><span class="detail" style="text-align:right;flex:0 0 auto;max-width:48%"><strong>'+ (v===null?'—':fmt(v,v>=100?0:3)) +'</strong><small>'+ (c.code==='IQD'?'IQWealth • Kifah SELL':v===null?'Unavailable':'per 1 USD') +'</small></span>';setFlag(item.querySelector('.flag'),c.code);list.append(item)}}
+ let note=document.createElement('div');note.className='infoLine';note.textContent='Rates per 1 USD • Baghdad market selling rate for IQD';let list=document.createElement('div');
+ function fill(){list.replaceChildren();let q=s.query.toLowerCase().trim();for(const c of currencies.filter(x=>!q||searchMatch(x,q))){let v=rate('USD',c.code),item=document.createElement('div');item.className='item';item.innerHTML='<span class="flag">'+''+'</span><span class="detail"><strong>'+c.code+'</strong><small>'+c.name+'</small></span><span class="detail" style="text-align:right;flex:0 0 auto;max-width:48%"><strong>'+ (v===null?'—':fmt(v,v>=100?0:3)) +'</strong><small>'+ (c.code==='IQD'?'Baghdad market':v===null?'Unavailable':'per 1 USD') +'</small></span>';setFlag(item.querySelector('.flag'),c.code);list.append(item)}}
  body.append(searchBox(fill),note,list);fill()}
 function settings(){let body=$('sheetBody');top('Settings','');body.replaceChildren();let b=document.createElement('button');b.className='settingsCard';b.innerHTML='<span style="font-size:32px;color:#43d56b">⇩</span><span><strong>Install MX Currency</strong><small>Add to Home Screen on iPhone, Android or desktop</small></span>';b.onclick=install;
- let m=document.createElement('div');m.className='mark';m.innerHTML='M<b>X</b>';let n=document.createElement('div');n.className='brand';n.textContent='MazenmiX';const credit=document.createElement('a');credit.href='https://iraqsm.com/en';credit.target='_blank';credit.rel='noopener noreferrer';credit.className='brand';credit.style.display='block';credit.textContent='Exchange-rate data: IQWealth';body.append(b,m,n,credit)}
+ let m=document.createElement('div');m.className='mark';m.innerHTML='M<b>X</b>';let n=document.createElement('div');n.className='brand';n.textContent='MazenmiX';body.append(b,m,n)}
 function render(){if(s.screen==='from'||s.screen==='to')choose(s.screen);else if(s.screen==='favorites')favorites();else if(s.screen==='add')addFav();else if(s.screen==='live')live();else if(s.screen==='settings')settings()}
 let prompt=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();prompt=e});
 function toast(str){let t=$('toast');t.textContent=str;t.style.display='block';setTimeout(()=>{t.style.display='none'},2200)}
