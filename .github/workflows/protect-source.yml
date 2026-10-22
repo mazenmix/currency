@@ -1,0 +1,75 @@
+name: Protect MX Money browser source
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - scripts/protect-site.cjs
+      - .github/workflows/protect-source.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: mxmoney-protect-main
+  cancel-in-progress: false
+jobs:
+  protect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install production protection tools
+        run: npm install --no-save --no-package-lock javascript-obfuscator@4.1.1 html-minifier-terser@7.2.0 playwright@1.58.2
+      - name: Obfuscate the currency app and minify HTML/CSS
+        run: node scripts/protect-site.cjs
+      - name: Check generated JavaScript syntax and HTML
+        run: |
+          set -eu
+          test -f index.html
+          test "$(find . -maxdepth 1 -name 'mx.*.js' | wc -l)" -ge 1
+          for f in mx.*.js; do node --check "$f"; done
+          grep -q 'data-mx-protected="1"' index.html
+          if grep -q "const defaultFav=" index.html; then echo "Unprotected app source found in HTML"; exit 1; fi
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Smoke test app on mobile and desktop
+        shell: bash
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/mxmoney-http.log 2>&1 &
+          node - <<'NODE'
+          const {chromium} = require('playwright');
+          (async() => {
+            const browser = await chromium.launch({headless:true});
+            try {
+              for(const width of [390, 1280]){
+                const page = await browser.newPage({viewport:{width,height:800}});
+                await page.goto('http://127.0.0.1:8765/',{waitUntil:'domcontentloaded'});
+                await page.waitForSelector('[data-n="1"]',{timeout:15000});
+                const error = [];
+                page.on('pageerror',e=>error.push(e.message));
+                await page.locator('[data-n="1"]').first().click();
+                const amount = (await page.locator('#entered').textContent() || '').trim();
+                if (!amount.includes('1'))throw Error('Calculator keypad did not update at '+width+': '+amount);
+                await page.locator('#swap').click();
+                if (error.length)throw Error('Browser JS error at '+width+': '+error.join(' | '));
+                await page.close();
+              }
+            } finally {await browser.close();}
+          })().catch(e=>{console.error(e);process.exitCode=1;});
+          NODE
+      - name: Commit verified protected production assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html mx.*.js
+          if git diff --cached --quiet; then
+            echo "Already protected."
+          else
+            git commit -m "Build protected MX Money browser assets"
+            git push origin HEAD:main
+          fi
