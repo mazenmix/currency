@@ -1,47 +1,53 @@
-// MX Currency world FX rates. IQD remains exclusive to /api/iqd (IQWealth).
-// PHP uses a separately fetched, timestamped USD/PHP market quote where available.
-// Currency Pro's proprietary upstream provider is not publicly confirmed:
-// do not label this as the same provider or hardcode its screenshot quote.
+// MX Currency world FX rates. IQD is exclusively sourced from /api/iqd (IQWealth).
+// Only the USD/PHP quote is attempted from the Investing.com USD/PHP page.
+// Investing.com provides no public quotes API. Do not bypass any access restrictions;
+// if the public HTML is not accessible, keep the existing reference rate and flag it.
 const BOOK='https://raw.githubusercontent.com/mazenmix/MX-Currency-/main/data/rates.json';
 const FALLBACK='https://open.er-api.com/v6/latest/USD';
-const PHP_FEEDS=[
-  'https://query1.finance.yahoo.com/v8/finance/chart/PHP%3DX?range=1d&interval=1m',
-  'https://query2.finance.yahoo.com/v8/finance/chart/PHP%3DX?range=1d&interval=1m'
-];
-async function json(url,timeout=5500) {
+const INVESTING_PHP_PAGE='https://www.investing.com/currencies/usd-php';
+
+async function get(url,accept,timeout=6000){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),timeout);
-  try {
-    const r=await fetch(url,{
-      headers:{Accept:'application/json'},
+  try{
+    const response=await fetch(url,{
+      headers:{Accept:accept,'Accept-Language':'en-US,en;q=0.9'},
       signal:controller.signal,
-      cf:{cacheTtl:60,cacheEverything:true}
+      cf:{cacheTtl:120,cacheEverything:true}
     });
-    if(!r.ok)throw Error('HTTP '+r.status);
-    return await r.json();
-  } finally {clearTimeout(timer)}
+    if(!response.ok)throw Error('HTTP '+response.status);
+    return response;
+  }finally{clearTimeout(timer)}
 }
-async function phpMarketQuote(){
-  for(const url of PHP_FEEDS){
-    try {
-      const raw=await json(url,3000);
-      const chart=raw?.chart?.result?.[0];
-      const value=Number(chart?.meta?.regularMarketPrice);
-      const stamp=Number(chart?.meta?.regularMarketTime);
-      const age=Date.now()-stamp*1000;
-      // Reject missing, reversed, expired and otherwise implausible quotes.
-      if(chart?.meta?.symbol!=='PHP=X'||!(value>35&&value<100)||
-         !(stamp>0)||age< -300000||age>96*3600000)continue;
-      return {rate:value,publishedAt:new Date(stamp*1000).toISOString(),
-        source:'Yahoo Finance USD/PHP market quote'};
-    }catch(_){}
-  }
-  return null;
+async function json(url){return (await get(url,'application/json')).json()}
+
+// Only extract the last-traded USD/PHP quote from its instrument-specific element.
+// Never extract the day's high, bid, ask, cross-rates or unrelated HTML numbers.
+function extractInvestingUsdPhp(html){
+  if(!/USD\s*\/\s*PHP|USD\s+PHP|US Dollar Philippine Peso/i.test(html))return null;
+  const match=html.match(/<([a-z][a-z0-9]*)\b(?=[^>]*\bdata-test\s*=\s*["']instrument-price-last["'])[^>]*>([\s\S]{0,1200}?)<\/\1>/i);
+  if(!match)return null;
+  const cleaned=match[2].replace(/<[^>]*>/g,'').replace(/&nbsp;|&#160;/gi,' ').replace(/\s/g,'').replace(/,/g,'');
+  if(!/^\d{2}\.\d{1,6}$/.test(cleaned))return null;
+  const rate=Number(cleaned);
+  return rate>=35&&rate<=100?rate:null;
+}
+async function investingPhpQuote(){
+  try{
+    const response=await get(INVESTING_PHP_PAGE,'text/html',5500);
+    if(!String(response.headers.get('content-type')||'').toLowerCase().includes('text/html'))return null;
+    const html=await response.text();
+    const rate=extractInvestingUsdPhp(html);
+    if(!rate)return null;
+    return {rate,checkedAt:new Date().toISOString(),source:'Investing.com USD/PHP'};
+  }catch(_){return null}
 }
 export async function onRequestGet(){
-  try {
+  try{
+    // Fetch the quote and catalogue at the same time so PHP checks do not stall the site.
+    const investingPromise=investingPhpQuote();
     let raw,source;
-    try {
+    try{
       raw=await json(BOOK);
       if(raw?.base!=='USD'||!raw?.rates)throw Error('Invalid global rate book');
       source='MX Currency global FX catalogue';
@@ -61,22 +67,23 @@ export async function onRequestGet(){
     if(!(Number(rates.PHP)>0))throw Error('Essential currency PHP is missing');
     const globalTime=raw.updatedAt||(raw.time_last_update_unix?
       new Date(raw.time_last_update_unix*1000).toISOString():null);
-    const market=await phpMarketQuote();
-    if(market){
-      rates.PHP=market.rate;
-      meta.PHP={buy:market.rate,sell:market.rate,kind:'market',
-        source:market.source,publishedAt:market.publishedAt,stale:false};
+    const investing=await investingPromise;
+    if(investing){
+      rates.PHP=investing.rate;
+      meta.PHP={buy:investing.rate,sell:investing.rate,kind:'market',
+        source:investing.source,checkedAt:investing.checkedAt,stale:false};
     }else{
-      // Explicit fallback, with its true source and publication time.
+      // Preserve a usable rate, but explicitly distinguish it from Investing.com.
       meta.PHP={buy:Number(rates.PHP),sell:Number(rates.PHP),kind:'reference',
-        source, publishedAt:globalTime,stale:true};
+        source,publishedAt:globalTime,stale:true};
     }
     return Response.json({
       base:'USD',rates,meta,source,updatedAt:globalTime,
-      phpSource:meta.PHP.source,phpUpdatedAt:meta.PHP.publishedAt,
+      phpSource:meta.PHP.source,
+      phpUpdatedAt:meta.PHP.checkedAt||meta.PHP.publishedAt||null,
       phpLive:!meta.PHP.stale,
       iqdSource:'IQWealth only (separate /api/iqd)'
-    },{headers:{'Cache-Control':'public, max-age=60'}});
+    },{headers:{'Cache-Control':'public, max-age=120'}});
   }catch(e){
     return Response.json({error:'Global reference rates unavailable',
       details:String(e.message||e)},{status:503,headers:{'Cache-Control':'no-store'}});
