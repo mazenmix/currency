@@ -193,8 +193,8 @@ function draw(){let a=s.input||'0',r=rate(s.from,s.to),out=r===null?'—':fmt((N
  const valid=d&&!isNaN(+d);
  const dateLabel=valid?d.toLocaleTimeString('en-US',{timeZone:'Asia/Baghdad',hour:'numeric',minute:'2-digit',hour12:true}).replace(/\s*(AM|PM)\s*$/i,''):'—';
  const isPhpPair=!isIqd&&(s.from==='PHP'||s.to==='PHP');
- const phpSourceLabel=s.meta.PHP?.source?.startsWith('Investing.com')?'Investing.com':s.meta.PHP?.source?'Reference':'Checking';
- $('updated').textContent=(late?'Stale • ':'')+'Last Updated: '+dateLabel+(isPhpPair?' · '+phpSourceLabel:'');
+
+ $('updated').textContent=(late?'Stale • ':'')+'Last Updated: '+dateLabel;
 }
 function add(n){if(n==='.'){if(!s.input.includes('.'))s.input=s.input?s.input+'.':'0.'}else if(s.input.length<16)s.input=s.input==='0'?n:s.input+n;draw()}
 function flip(){let t=s.from;s.from=s.to;s.to=t;save();draw();refresh()}
