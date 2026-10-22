@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<meta name="mx-release" content="2026-10-22-footer-install-v1">
+<meta name="mx-release" content="2026-10-22-footer-install-layout-v2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MX Currency">
@@ -56,8 +56,8 @@ header{position:relative;flex:0 0 67px;height:67px;display:flex;justify-content:
 .key.swap:active{background:#30bd3c}.key.swap svg{height:30px;width:30px}
 .key.zero{grid-column:span 2}
 footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;padding:0 12px;font-size:12px;column-gap:7px}footer a{color:#9abfe8;text-decoration:none;white-space:nowrap;font-size:11px}footer a:hover{text-decoration:underline}
-#updated{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;justify-self:start;max-width:100%}#brandSignature{color:#a0a0a4;font-size:14px;letter-spacing:.1px;white-space:nowrap;font-weight:600;justify-self:end}
-#footerInstall{justify-self:center;white-space:nowrap;border:1px solid #666970;background:linear-gradient(180deg,#2a2a2d,#1a1a1c);color:#f3f3f5;padding:8px 13px;border-radius:8px;font-size:12px;font-weight:650;line-height:1;letter-spacing:.08px;box-shadow:inset 0 1px 0 #ffffff19;transition:background .15s,border-color .15s,transform .15s}
+#updated{grid-column:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;justify-self:start;max-width:100%}#brandSignature{grid-column:3;color:#a0a0a4;font-size:14px;letter-spacing:.1px;white-space:nowrap;font-weight:600;justify-self:end}
+#footerInstall{grid-column:2;justify-self:center;white-space:nowrap;border:1px solid #666970;background:linear-gradient(180deg,#2a2a2d,#1a1a1c);color:#f3f3f5;padding:8px 13px;border-radius:8px;font-size:12px;font-weight:650;line-height:1;letter-spacing:.08px;box-shadow:inset 0 1px 0 #ffffff19;transition:background .15s,border-color .15s,transform .15s}
 #footerInstall:hover{border-color:#b1b1b8;background:#303033}#footerInstall:active{transform:scale(.97)}#footerInstall[hidden],#settingsInstall[hidden]{display:none!important}
 #settingsButton{background:none;color:var(--blue);font-size:15px;font-weight:650;padding:12px 0}
 #shade{position:fixed;inset:0;display:none;z-index:15;background:#000;justify-content:center}
