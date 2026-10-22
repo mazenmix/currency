@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<meta name="mx-release" content="2026-10-19-market-precision-cleanup-v1">
+<meta name="mx-release" content="2026-10-22-footer-install-v1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MX Currency">
@@ -55,8 +55,10 @@ header{position:relative;flex:0 0 67px;height:67px;display:flex;justify-content:
 .key.swap{grid-row:span 2;background:#44d74d;flex-direction:column;gap:10px;font-size:17px;font-weight:450}
 .key.swap:active{background:#30bd3c}.key.swap svg{height:30px;width:30px}
 .key.zero{grid-column:span 2}
-footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:12px;gap:8px}footer a{color:#9abfe8;text-decoration:none;white-space:nowrap;font-size:11px}footer a:hover{text-decoration:underline}
-#updated{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}#brandSignature{color:#a0a0a4;font-size:14px;letter-spacing:.1px;flex:0 0 auto;white-space:nowrap;font-weight:600}
+footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;padding:0 12px;font-size:12px;column-gap:7px}footer a{color:#9abfe8;text-decoration:none;white-space:nowrap;font-size:11px}footer a:hover{text-decoration:underline}
+#updated{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;justify-self:start;max-width:100%}#brandSignature{color:#a0a0a4;font-size:14px;letter-spacing:.1px;white-space:nowrap;font-weight:600;justify-self:end}
+#footerInstall{justify-self:center;white-space:nowrap;border:1px solid #666970;background:linear-gradient(180deg,#2a2a2d,#1a1a1c);color:#f3f3f5;padding:8px 13px;border-radius:8px;font-size:12px;font-weight:650;line-height:1;letter-spacing:.08px;box-shadow:inset 0 1px 0 #ffffff19;transition:background .15s,border-color .15s,transform .15s}
+#footerInstall:hover{border-color:#b1b1b8;background:#303033}#footerInstall:active{transform:scale(.97)}#footerInstall[hidden],#settingsInstall[hidden]{display:none!important}
 #settingsButton{background:none;color:var(--blue);font-size:15px;font-weight:650;padding:12px 0}
 #shade{position:fixed;inset:0;display:none;z-index:15;background:#000;justify-content:center}
 #shade.visible{display:flex}
@@ -80,10 +82,12 @@ footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:flex;align-items:cen
 .infoLine{color:#a5a5a5;padding:15px;font-size:12px}
 .settingsCard{display:flex;align-items:center;background:#252525;border:1px solid #353535;padding:20px;border-radius:17px;width:calc(100% - 36px);margin:24px 18px;gap:13px;text-align:left}
 .settingsCard strong{font-size:17px}.settingsCard small{display:block;color:#aaa;font-size:12px;margin-top:6px}
+.installGuide{margin:24px 18px;padding:22px 20px;background:#1c1c1f;border:1px solid #3a3a3e;border-radius:16px;color:#e7e7e9}
+.installGuide h3{margin:0 0 12px;font-size:20px}.installGuide p{margin:0;font-size:15px;line-height:1.7;color:#c8c8cd}.installGuide strong{color:#fff}
 .mark{font-size:30px;font-weight:900;text-align:center;margin:36px 0 0}.mark b{color:#ffb228}
 .brand{text-align:center;font-size:14px;color:#999;margin:7px 0}
 #toast{position:fixed;z-index:40;bottom:73px;left:50%;transform:translateX(-50%);background:#333;border-radius:12px;padding:10px 16px;color:white;display:none;font-size:13px;white-space:nowrap}
-@media (max-width:375px){header{padding:0 12px}#rate{font-size:18px}.pair{padding:0 6px;gap:4px}.flag{font-size:30px;flex-basis:39px;width:39px}.flag img{width:39px;height:27px}.pair .code{font-size:16px}.hint{font-size:11px}.arrow{min-width:22px;width:22px}.display{gap:7px;padding:0 11px}}
+@media (max-width:375px){header{padding:0 12px}#rate{font-size:18px}.pair{padding:0 6px;gap:4px}.flag{font-size:30px;flex-basis:39px;width:39px}.flag img{width:39px;height:27px}.pair .code{font-size:16px}.hint{font-size:11px}.arrow{min-width:22px;width:22px}.display{gap:7px;padding:0 11px}footer{padding:0 8px;column-gap:4px}#updated{font-size:10px}#brandSignature{font-size:12px}#footerInstall{font-size:11px;padding:7px 9px}}
 @media (max-height:630px){header{height:54px;flex-basis:54px}.display{height:74px;flex-basis:74px}.pair{height:65px;flex-basis:65px}footer{height:48px;flex-basis:48px}}
 @media (min-width:560px){#app,#sheet{border-left:1px solid #222;border-right:1px solid #222}body{background:#090909}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -117,7 +121,7 @@ footer{background:#1b1b1d;flex:0 0 56px;height:56px;display:flex;align-items:cen
   </button>
   <button class="key" data-n=".">.</button><button class="key zero" data-n="0">0</button>
  </section>
- <footer><span id="updated">Last Updated: —</span><span id="brandSignature">MazenmiX</span></footer>
+ <footer><span id="updated">Last Updated: —</span><button id="footerInstall" type="button" hidden aria-label="Install MX Currency on this device">Install now</button><span id="brandSignature">MazenmiX</span></footer>
 </main>
 <div id="shade" aria-hidden="true"><section id="sheet" role="dialog" aria-modal="true"><div class="sheetTop"><button id="closeSheet" aria-label="Close">×</button><h2 id="sheetTitle">Currencies</h2><button id="rightSheet" class="primary" aria-label="Done">✓</button></div><div id="sheetBody"></div></section></div>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -231,12 +235,29 @@ function live(){let body=$('sheetBody');top('Live Rates','⟳',()=>refresh(true)
  let note=document.createElement('div');note.className='infoLine';note.textContent='Rates per 1 USD • Baghdad market selling rate for IQD';let list=document.createElement('div');
  function fill(){list.replaceChildren();let q=s.query.toLowerCase().trim();for(const c of currencies.filter(x=>!q||searchMatch(x,q))){let v=rate('USD',c.code),item=document.createElement('div');item.className='item';item.innerHTML='<span class="flag">'+''+'</span><span class="detail"><strong>'+c.code+'</strong><small>'+c.name+'</small></span><span class="detail" style="text-align:right;flex:0 0 auto;max-width:48%"><strong>'+ (v===null?'—':fmt(v,v>=100?0:3)) +'</strong><small>'+ (c.code==='IQD'?'Baghdad market':v===null?'Unavailable':'per 1 USD') +'</small></span>';setFlag(item.querySelector('.flag'),c.code);list.append(item)}}
  body.append(searchBox(fill),note,list);fill()}
-function settings(){let body=$('sheetBody');top('Settings','');body.replaceChildren();let b=document.createElement('button');b.className='settingsCard';b.innerHTML='<span style="font-size:32px;color:#43d56b">⇩</span><span><strong>Install MX Currency</strong><small>Add to Home Screen on iPhone, Android or desktop</small></span>';b.onclick=install;
+function settings(){let body=$('sheetBody');top('Settings','');body.replaceChildren();let b=document.createElement('button');b.id='settingsInstall';b.className='settingsCard';b.hidden=!canInstall();b.innerHTML='<span style="font-size:32px;color:#43d56b">⇩</span><span><strong>Install MX Currency</strong><small>Add to Home Screen on iPhone, Android or desktop</small></span>';b.onclick=install;
  let m=document.createElement('div');m.className='mark';m.innerHTML='M<b>X</b>';let n=document.createElement('div');n.className='brand';n.textContent='MazenmiX';body.append(b,m,n)}
-function render(){if(s.screen==='from'||s.screen==='to')choose(s.screen);else if(s.screen==='favorites')favorites();else if(s.screen==='add')addFav();else if(s.screen==='live')live();else if(s.screen==='settings')settings()}
-let prompt=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();prompt=e});
+function installHelp(){let body=$('sheetBody');top('Install MX Currency','');body.replaceChildren();let guide=document.createElement('div');guide.className='installGuide';
+ guide.innerHTML=appleMobile?'<h3>Add to Home Screen</h3><p>1. Open this site in <strong>Safari</strong>.<br>2. Tap <strong>Share</strong> (square with an up arrow).<br>3. Choose <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</p>':'<h3>Add to Dock</h3><p>In <strong>Safari</strong>, open <strong>File → Add to Dock</strong> and confirm.</p>';
+ body.append(guide)}
+function render(){if(s.screen==='from'||s.screen==='to')choose(s.screen);else if(s.screen==='favorites')favorites();else if(s.screen==='add')addFav();else if(s.screen==='live')live();else if(s.screen==='settings')settings();else if(s.screen==='installHelp')installHelp()}
+let installPrompt=null,installedHere=false;
+const appleMobile=/iPad|iPhone|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const safariMac=/Macintosh/i.test(navigator.userAgent)&&/Safari/i.test(navigator.userAgent)&&!/Chrome|Chromium|CriOS|Edg|OPR/i.test(navigator.userAgent);
+const installDisplayMode=window.matchMedia('(display-mode: standalone)');
+function isStandalone(){return installDisplayMode.matches||window.matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true}
+function canInstall(){return !isStandalone()&&!installedHere&&(!!installPrompt||appleMobile||safariMac)}
+function syncInstallUi(){let visible=canInstall();$('footerInstall').hidden=!visible;let settingsButton=$('settingsInstall');if(settingsButton)settingsButton.hidden=!visible}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;installedHere=false;syncInstallUi()});
+window.addEventListener('appinstalled',()=>{installPrompt=null;installedHere=true;syncInstallUi()});
+if(installDisplayMode.addEventListener)installDisplayMode.addEventListener('change',syncInstallUi);
+else if(installDisplayMode.addListener)installDisplayMode.addListener(syncInstallUi);
 function toast(str){let t=$('toast');t.textContent=str;t.style.display='block';setTimeout(()=>{t.style.display='none'},2200)}
-async function install(){if(prompt){prompt.prompt();await prompt.userChoice;prompt=null}else toast(/iPhone|iPad/i.test(navigator.userAgent)?'Safari → Share → Add to Home Screen':'Browser menu → Install app')}
+async function install(){if(!canInstall())return;
+ if(installPrompt){let p=installPrompt;installPrompt=null;syncInstallUi();try{await p.prompt();let choice=await p.userChoice;if(choice?.outcome==='accepted')installedHere=true;syncInstallUi()}catch{installPrompt=null;syncInstallUi()}return}
+ if(appleMobile||safariMac)open('installHelp')}
+$('footerInstall').addEventListener('click',install);
+syncInstallUi();
 async function json(url){const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),9000);try{let r=await fetch(url,{cache:'no-store',signal:ctrl.signal,headers:{Accept:'application/json'}});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(timer)}}
 async function first(urls){for(let u of urls){try{return await json(u)}catch{}}return null}
 function iqdQuote(d){const n=Number(d?.sell??d?.rate);return d?.source==='IQWealth · iraqsm.com'&&n>=800&&n<=3500?{rate:n,publishedAt:d.updatedAt||null,stale:d.stale===true}:null}
