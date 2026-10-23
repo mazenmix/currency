@@ -1,19 +1,18 @@
 // MX Currency world FX rates. IQD is exclusively sourced from /api/iqd (IQWealth).
-// Only the USD/PHP quote is attempted from the Investing.com USD/PHP page.
-// Investing.com provides no public quotes API. Do not bypass any access restrictions;
-// if the public HTML is not accessible, keep the existing reference rate and flag it.
+// USD/PHP follows the BDO bank's USD SELL quote from MX Fuel's forex feed.
+// The BDO USD BUY quote must never be used as the calculator conversion rate.
 const BOOK='https://raw.githubusercontent.com/mazenmix/MX-Currency-/main/data/rates.json';
 const FALLBACK='https://open.er-api.com/v6/latest/USD';
-const INVESTING_PHP_PAGE='https://www.investing.com/currencies/usd-php';
+const MX_FUEL_FOREX='https://mxfuel.pages.dev/api/forex';
 
-async function get(url,accept,timeout=6000){
+async function get(url,accept,timeout=6000,cacheSeconds=120){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),timeout);
   try{
     const response=await fetch(url,{
       headers:{Accept:accept,'Accept-Language':'en-US,en;q=0.9'},
       signal:controller.signal,
-      cf:{cacheTtl:120,cacheEverything:true}
+      cf:{cacheTtl:cacheSeconds,cacheEverything:true}
     });
     if(!response.ok)throw Error('HTTP '+response.status);
     return response;
@@ -21,31 +20,35 @@ async function get(url,accept,timeout=6000){
 }
 async function json(url){return (await get(url,'application/json')).json()}
 
-// Only extract the last-traded USD/PHP quote from its instrument-specific element.
-// Never extract the day's high, bid, ask, cross-rates or unrelated HTML numbers.
-function extractInvestingUsdPhp(html){
-  if(!/USD\s*\/\s*PHP|USD\s+PHP|US Dollar Philippine Peso/i.test(html))return null;
-  const match=html.match(/<([a-z][a-z0-9]*)\b(?=[^>]*\bdata-test\s*=\s*["']instrument-price-last["'])[^>]*>([\s\S]{0,1200}?)<\/\1>/i);
-  if(!match)return null;
-  const cleaned=match[2].replace(/<[^>]*>/g,'').replace(/&nbsp;|&#160;/gi,' ').replace(/\s/g,'').replace(/,/g,'');
-  if(!/^\d{2}\.\d{1,6}$/.test(cleaned))return null;
-  const rate=Number(cleaned);
-  return rate>=35&&rate<=100?rate:null;
-}
-async function investingPhpQuote(){
+// MX Fuel already normalizes the BDO bank's USD [buy, sell] board.
+async function bdoUsdSellQuote(){
   try{
-    const response=await get(INVESTING_PHP_PAGE,'text/html',5500);
-    if(!String(response.headers.get('content-type')||'').toLowerCase().includes('text/html'))return null;
-    const html=await response.text();
-    const rate=extractInvestingUsdPhp(html);
-    if(!rate)return null;
-    return {rate,checkedAt:new Date().toISOString(),source:'Investing.com USD/PHP'};
+    const response=await get(MX_FUEL_FOREX,'application/json',5500,60);
+    if(!String(response.headers.get('content-type')||'').toLowerCase().includes('json'))return null;
+    const data=await response.json();
+    if(data?.ok!==true||!Array.isArray(data.providers))return null;
+    const provider=data.providers.find(p=>String(p?.name||'').trim().toUpperCase()==='BDO');
+    const usd=provider?.rates?.USD;
+    if(!Array.isArray(usd)||usd.length<2)return null;
+    const buy=Number(usd[0]),sell=Number(usd[1]);
+    if(!Number.isFinite(buy)||!Number.isFinite(sell)||buy<35||sell>100||sell<buy)return null;
+    const status=String(provider.status||'').toLowerCase();
+    if(!['live','last_verified'].includes(status))return null;
+    return {
+      rate:sell,bankBuy:buy,
+      source:'MX Fuel · BDO USD SELL',
+      sourceUrl:provider.source_url||MX_FUEL_FOREX,
+      publishedAt:provider.updated||null,
+      checkedAt:data.checked_at||null,
+      fetchedAt:provider.fetched_at||null,
+      stale:status!=='live'
+    };
   }catch(_){return null}
 }
 export async function onRequestGet(){
   try{
-    // Fetch the quote and catalogue at the same time so PHP checks do not stall the site.
-    const investingPromise=investingPhpQuote();
+    // Fetch BDO and the global catalogue in parallel to avoid slowing other currencies.
+    const bdoPromise=bdoUsdSellQuote();
     let raw,source;
     try{
       raw=await json(BOOK);
@@ -67,23 +70,28 @@ export async function onRequestGet(){
     if(!(Number(rates.PHP)>0))throw Error('Essential currency PHP is missing');
     const globalTime=raw.updatedAt||(raw.time_last_update_unix?
       new Date(raw.time_last_update_unix*1000).toISOString():null);
-    const investing=await investingPromise;
-    if(investing){
-      rates.PHP=investing.rate;
-      meta.PHP={buy:investing.rate,sell:investing.rate,kind:'market',
-        source:investing.source,checkedAt:investing.checkedAt,stale:false};
+    const bdo=await bdoPromise;
+    if(bdo){
+      rates.PHP=bdo.rate;
+      // Both conversion sides use BDO SELL so other UI paths cannot select BUY.
+      meta.PHP={buy:bdo.rate,sell:bdo.rate,bankBuy:bdo.bankBuy,
+        kind:'bank-sell',bank:'BDO',quoteSide:'SELL',
+        source:bdo.source,sourceUrl:bdo.sourceUrl,
+        publishedAt:bdo.publishedAt,checkedAt:bdo.checkedAt,
+        fetchedAt:bdo.fetchedAt,stale:bdo.stale};
     }else{
-      // Preserve a usable rate, but explicitly distinguish it from Investing.com.
+      // Do not mislabel the catalogue reference as a current BDO price.
       meta.PHP={buy:Number(rates.PHP),sell:Number(rates.PHP),kind:'reference',
-        source,publishedAt:globalTime,stale:true};
+        source:'Global FX reference (BDO temporarily unavailable)',
+        publishedAt:globalTime,stale:true};
     }
     return Response.json({
       base:'USD',rates,meta,source,updatedAt:globalTime,
       phpSource:meta.PHP.source,
       phpUpdatedAt:meta.PHP.checkedAt||meta.PHP.publishedAt||null,
-      phpLive:!meta.PHP.stale,
+      phpLive:!!bdo&&!bdo.stale,
       iqdSource:'IQWealth only (separate /api/iqd)'
-    },{headers:{'Cache-Control':'public, max-age=120'}});
+    },{headers:{'Cache-Control':'public, max-age=60'}});
   }catch(e){
     return Response.json({error:'Global reference rates unavailable',
       details:String(e.message||e)},{status:503,headers:{'Cache-Control':'no-store'}});
