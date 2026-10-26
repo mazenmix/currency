@@ -49,7 +49,7 @@ async function bdoUsdSellQuote(){
 function normalizeBdoTime(value){
   if(!value)return null;
   const raw=String(value).trim();
-  const phLocal=/^[A-Za-z]{3,9}\\s+\\d{1,2},?\\s+\\d{4},?\\s+\\d{1,2}:\\d{2}\\s*[ap]m$/i.test(raw);
+  const phLocal=/^[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4},?\s+\d{1,2}:\d{2}\s*[ap]m$/i.test(raw);
   const timestamp=Date.parse(phLocal?raw+' GMT+0800':raw);
   return Number.isFinite(timestamp)?new Date(timestamp).toISOString():null;
 }
@@ -60,7 +60,7 @@ function isOldBdoPublication(value){
 
 // Regional edge cache stores only verified BDO sell quotes. Serve the latest
 // verified quote immediately while a slow MX Fuel scrape revalidates in background.
-const BDO_CACHE_KEY=new Request('https://mxmoney.pages.dev/__mx_bdo_sell_verified_20261026');
+const BDO_CACHE_KEY=new Request('https://mxmoney.pages.dev/__mx_bdo_sell_verified_20261026_v2');
 async function cachedBdoSell(context){
   let cache=null,previous=null;
   try{
