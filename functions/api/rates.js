@@ -23,7 +23,7 @@ async function json(url){return (await get(url,'application/json')).json()}
 // MX Fuel already normalizes the BDO bank's USD [buy, sell] board.
 async function bdoUsdSellQuote(){
   try{
-    const response=await get(MX_FUEL_FOREX,'application/json',5500,15);
+    const response=await get(MX_FUEL_FOREX,'application/json',11000,30);
     if(!String(response.headers.get('content-type')||'').toLowerCase().includes('json'))return null;
     const data=await response.json();
     if(data?.ok!==true||!Array.isArray(data.providers))return null;
@@ -38,17 +38,65 @@ async function bdoUsdSellQuote(){
       rate:sell,bankBuy:buy,
       source:'MX Fuel · BDO USD SELL',
       sourceUrl:provider.source_url||MX_FUEL_FOREX,
-      publishedAt:provider.updated||null,
+      publishedAt:normalizeBdoTime(provider.updated),
       checkedAt:data.checked_at||null,
       fetchedAt:provider.fetched_at||null,
-      stale:status!=='live'
+      stale:status!=='live'||isOldBdoPublication(provider.updated)
     };
   }catch(_){return null}
 }
-export async function onRequestGet(){
+// BDO publishes local Philippines wall time without an offset.
+function normalizeBdoTime(value){
+  if(!value)return null;
+  const raw=String(value).trim();
+  const phLocal=/^[A-Za-z]{3,9}\\s+\\d{1,2},?\\s+\\d{4},?\\s+\\d{1,2}:\\d{2}\\s*[ap]m$/i.test(raw);
+  const timestamp=Date.parse(phLocal?raw+' GMT+0800':raw);
+  return Number.isFinite(timestamp)?new Date(timestamp).toISOString():null;
+}
+function isOldBdoPublication(value){
+  const published=normalizeBdoTime(value);
+  return !!published && Date.now()-Date.parse(published)>36*3600*1000;
+}
+
+// Regional edge cache stores only verified BDO sell quotes. Serve the latest
+// verified quote immediately while a slow MX Fuel scrape revalidates in background.
+const BDO_CACHE_KEY=new Request('https://mxmoney.pages.dev/__mx_bdo_sell_verified_20261026');
+async function cachedBdoSell(context){
+  let cache=null,previous=null;
+  try{
+    cache=globalThis.caches?.default||null;
+    if(cache){
+      const hit=await cache.match(BDO_CACHE_KEY);
+      if(hit)previous=await hit.json();
+      if(previous&&(!Number.isFinite(Number(previous.rate))||Number(previous.rate)<35||Number(previous.rate)>100||
+        !Number.isFinite(Number(previous.cachedAt))))previous=null;
+    }
+  }catch(_){previous=null;cache=null}
+  const refresh=async()=>{
+    const quote=await bdoUsdSellQuote();
+    if(!quote)return null;
+    if(cache)try{
+      await cache.put(BDO_CACHE_KEY,new Response(JSON.stringify({...quote,cachedAt:Date.now()}),{
+        headers:{'Cache-Control':'public, max-age=21600'}
+      }));
+    }catch(_){}
+    return quote;
+  };
+  if(previous){
+    const age=Date.now()-previous.cachedAt;
+    if(age>60000){
+      const task=refresh().catch(()=>null);
+      if(typeof context?.waitUntil==='function')context.waitUntil(task);
+    }
+    return {...previous,stale:previous.stale===true||age>10*60000};
+  }
+  return refresh();
+}
+
+export async function onRequestGet(context){
   try{
     // Fetch BDO and the global catalogue in parallel to avoid slowing other currencies.
-    const bdoPromise=bdoUsdSellQuote();
+    const bdoPromise=cachedBdoSell(context);
     let raw,source;
     try{
       raw=await json(BOOK);
