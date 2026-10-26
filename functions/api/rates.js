@@ -23,7 +23,7 @@ async function json(url){return (await get(url,'application/json')).json()}
 // MX Fuel already normalizes the BDO bank's USD [buy, sell] board.
 async function bdoUsdSellQuote(){
   try{
-    const response=await get(MX_FUEL_FOREX,'application/json',5500,60);
+    const response=await get(MX_FUEL_FOREX,'application/json',5500,15);
     if(!String(response.headers.get('content-type')||'').toLowerCase().includes('json'))return null;
     const data=await response.json();
     if(data?.ok!==true||!Array.isArray(data.providers))return null;
@@ -67,7 +67,7 @@ export async function onRequestGet(){
     for(const [code,entry] of Object.entries(raw.meta||{})){
       if(code!=='IQD'&&/^[A-Z]{3}$/.test(code)&&entry&&typeof entry==='object')meta[code]=entry;
     }
-    if(!(Number(rates.PHP)>0))throw Error('Essential currency PHP is missing');
+    // PHP is exclusively a verified BDO SELL quote. The global book is NOT a substitute.
     const globalTime=raw.updatedAt||(raw.time_last_update_unix?
       new Date(raw.time_last_update_unix*1000).toISOString():null);
     const bdo=await bdoPromise;
@@ -80,18 +80,18 @@ export async function onRequestGet(){
         publishedAt:bdo.publishedAt,checkedAt:bdo.checkedAt,
         fetchedAt:bdo.fetchedAt,stale:bdo.stale};
     }else{
-      // Do not mislabel the catalogue reference as a current BDO price.
-      meta.PHP={buy:Number(rates.PHP),sell:Number(rates.PHP),kind:'reference',
-        source:'Global FX reference (BDO temporarily unavailable)',
-        publishedAt:globalTime,stale:true};
+      // Never show the global mid-market rate as if it were BDO Sell.
+      // The client retains its last verified BDO value (clearly cached) if available.
+      delete rates.PHP;
+      delete meta.PHP;
     }
     return Response.json({
       base:'USD',rates,meta,source,updatedAt:globalTime,
-      phpSource:meta.PHP.source,
-      phpUpdatedAt:meta.PHP.checkedAt||meta.PHP.publishedAt||null,
+      phpSource:meta.PHP?.source||'BDO SELL temporarily unavailable',
+      phpUpdatedAt:meta.PHP?.publishedAt||meta.PHP?.checkedAt||meta.PHP?.fetchedAt||null,
       phpLive:!!bdo&&!bdo.stale,
       iqdSource:'IQWealth only (separate /api/iqd)'
-    },{headers:{'Cache-Control':'public, max-age=60'}});
+    },{headers:{'Cache-Control':'no-store, max-age=0', 'CDN-Cache-Control':'no-store'}});
   }catch(e){
     return Response.json({error:'Global reference rates unavailable',
       details:String(e.message||e)},{status:503,headers:{'Cache-Control':'no-store'}});
